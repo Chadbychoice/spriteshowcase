@@ -115,9 +115,8 @@ async function loadAllTextures() {
 
     for (const [state, baseFileNamePart] of Object.entries(states)) {
         textures[state] = {};
-        // Determine state directory name (Idle or Walk)
-        const stateDirName = state.charAt(0).toUpperCase() + state.slice(1);
-        const statePath = `${SPRITE_PATH}${stateDirName}/`;
+        // Use the lowercase state name directly for the directory path
+        const statePath = `${SPRITE_PATH}${state}/`;
 
         if (!baseFileNamePart) {
             console.error(`Missing filename prefix configuration for state: ${state}`);

@@ -44,13 +44,24 @@ const CAR_FRICTION = 2.0; // Slowdown factor
 const CAR_TURN_SPEED = 1.5; // Radians per second
 const MAX_CAR_SPEED = 30.0; // Increase max speed again
 const INTERACTION_DISTANCE = 2.0; // Max distance to interact with car
+const CAR_SPRITE_PREFIX = "bc66dce3-9546-48ba-b62e-3e93e8b7c623"; // Updated prefix
+const CAR2_SPRITE_PREFIX = "8cc5ca8e-efd6-48ea-8962-cb703a81bf5f"; // Prefix for the blue car
+const NUM_CAR_ANGLES = 64;
+const CAR_ANGLE_INCREMENT = 360 / NUM_CAR_ANGLES; // 5.625 degrees
+// Generate the 64 angles for the car (reused for both)
+const CAR_ANGLES = Array.from({ length: NUM_CAR_ANGLES }, (_, i) => i * CAR_ANGLE_INCREMENT);
+
 const CAMERA_TARGET_OFFSET = new THREE.Vector3(0, 1.0, 0); // Look slightly above character feet
 const CAMERA_OFFSET = new THREE.Vector3(0, 1.6, 1.8); // Zoom even closer (for character)
-const CAMERA_OFFSET_CAR = new THREE.Vector3(0, 2.5, 5.0); // Zoom out for car
+// Increase Y offset for car to raise camera height
+const CAMERA_OFFSET_CAR = new THREE.Vector3(0, 3.0, 5.0); // Y increased from 2.5 to 3.0
 const CAMERA_MIN_Y = 0.5; // Minimum height camera can go (prevent floor clipping)
 const CAMERA_SMOOTH_SPEED = 5.0; // How quickly the camera position follows (higher is faster)
 const CAMERA_ANGLE_FOLLOW_SPEED = 5.0; // Make camera angle follow faster
+const CAMERA_VERTICAL_SMOOTH_SPEED = 8.0; // Speed for vertical angle lerping
 const MOUSE_SENSITIVITY = 0.002;
+const CAMERA_VERTICAL_ANGLE_CHARACTER_RAD = THREE.MathUtils.degToRad(50);
+const CAMERA_VERTICAL_ANGLE_CAR_RAD = THREE.MathUtils.degToRad(55);
 const MAX_DUST_PARTICLES = 200;
 const DUST_PARTICLE_LIFETIME = 1.5; // seconds
 const DUST_EMISSION_RATE_PER_SPEED = 2; // Particles per second per unit of speed
@@ -83,6 +94,7 @@ const AMBIENT_DUST_SPEED = 0.1;  // How fast they drift
 const SATURATION_MULTIPLIER = 1.3; // How much to multiply saturation by
 const CAR_HIT_IMPULSE_HORIZONTAL = 15.0; // For car hitting NPC
 const CAR_HIT_IMPULSE_VERTICAL = 7.0;   // For car hitting NPC
+const CAR_REBOUND_SPEED = 5.0; // Speed at which car bounces off obstacles
 
 // --- State ---
 const GROUND_LEVEL_Y = SPRITE_SCALE / 2 - 0.075; // Store ground level calculation
@@ -91,6 +103,7 @@ const GRASS_Y_POS = 0.005; // Slightly above ground, below road/trees
 const CAR_Y_POS = CAR_SCALE / 2 - 2.5; // Lower car tiny bit more
 
 let playerControlMode = 'character'; // 'character' or 'car'
+let currentDrivingCar = null; // Reference to the car object being driven, or null
 
 let character = {
     position: new THREE.Vector3(0, GROUND_LEVEL_Y, 0), // Use constant
@@ -114,7 +127,20 @@ let car = {
     angle: Math.PI, // Initial car angle (radians, matching forward vector)
     currentAngleSprite: 0, // The angle used for selecting sprite texture
     sprite: null, // To hold the car's Mesh object
-    textures: {} // { 0: tex, 22.5: tex, ... }
+    textures: {}, // { 0: tex, 22.5: tex, ... }
+    baseY: CAR_Y_POS // Store the base Y position
+};
+
+// Add state for the second car
+let car2 = {
+    position: new THREE.Vector3(-5, CAR_Y_POS - 0.1, -10), // Different initial position, slightly lower
+    velocity: new THREE.Vector3(),
+    forward: new THREE.Vector3(0, 0, 1), // Initial facing direction (along +Z)
+    angle: 0, // Initial car angle (radians, matching forward vector)
+    currentAngleSprite: 0, // The angle used for selecting sprite texture
+    sprite: null, // To hold the car's Mesh object
+    textures: {}, // Separate textures object
+    baseY: CAR_Y_POS - 0.1 // Store the base Y position for car 2
 };
 
 let keyboard = {}; // Keep track of pressed keys
@@ -143,19 +169,23 @@ let npcTextures = { idle: {}, walk: {} }; // NPC Textures
 let grassTexture = null; // Single Grass Texture
 let powTexture = null; // Texture for the POW effect
 let activePowEffects = []; // Array for managing active POW sprites
+let buildingTexture = null; // Texture for skyscrapers
 
 // --- Loading State --- (Flags)
 let texturesLoaded = false;
 let treeTexturesLoaded = false;
 let carTexturesLoaded = false;
 let npcTexturesLoaded = false; // Add flag for NPC textures
+let car2TexturesLoaded = false; // Add flag for Car 2 textures
 
 // --- Loaders --- 
 let textureLoader = new THREE.TextureLoader();
 
 // --- Camera State --- 
 let cameraHorizontalAngle = 0;
-let cameraVerticalAngle = 0.2; // Start slightly looking down
+// Initialize vertical angle to character's angle
+let cameraVerticalAngle = CAMERA_VERTICAL_ANGLE_CHARACTER_RAD;
+let targetCameraVerticalAngle = CAMERA_VERTICAL_ANGLE_CHARACTER_RAD;
 
 // --- Particle System State ---
 let dustParticles = null; // THREE.Points object
@@ -197,15 +227,30 @@ const skyscraperPositions = [
 function createSkyscrapers() {
     const geometryBase = new THREE.BoxGeometry(SKYSCRAPER_BASE_SIZE, 1, SKYSCRAPER_BASE_SIZE); // Height will be scaled
 
+    if (!buildingTexture) {
+        console.warn("Building texture not loaded, cannot create skyscrapers with texture.");
+        // Optionally create basic grey skyscrapers as fallback?
+        return;
+    }
+
     for (const pos of skyscraperPositions) {
         const height = SKYSCRAPER_MIN_HEIGHT + Math.random() * (SKYSCRAPER_MAX_HEIGHT - SKYSCRAPER_MIN_HEIGHT);
         
-        // Create unique material with random grey for each skyscraper
-        const greyValue = 0.4 + Math.random() * 0.3; // Range 0.4 to 0.7
+        // Clone texture for unique repeat settings
+        const uniqueBuildingTexture = buildingTexture.clone();
+        uniqueBuildingTexture.needsUpdate = true; // Important!
+        // Set repeat based on size - let's assume texture is designed for roughly 4x4 units
+        const repeatX = SKYSCRAPER_BASE_SIZE / 4;
+        const repeatY = height / 4;
+        uniqueBuildingTexture.repeat.set(repeatX, repeatY);
+
+        // Create unique material with building texture and slight color tint
+        const tintValue = 0.8 + Math.random() * 0.2; // Light grey tint (0.8 to 1.0)
         const material = new THREE.MeshStandardMaterial({
-             color: new THREE.Color(greyValue, greyValue, greyValue), 
-             roughness: 0.95, // Make less shiny
-             metalness: 0.0   // Make non-metallic
+             map: uniqueBuildingTexture, // Use the building texture
+             color: new THREE.Color(tintValue, tintValue, tintValue), // Apply tint
+             roughness: 0.95, 
+             metalness: 0.0   
         });
 
         const skyscraper = new THREE.Mesh(geometryBase, material);
@@ -315,6 +360,12 @@ function init() {
     grassTexture.wrapT = THREE.RepeatWrapping;
     grassTexture.repeat.set(2, 2); // Adjust repeat as needed for patch size
 
+    // Building Texture (Load it here)
+    buildingTexture = textureLoader.load('/textures/building.webp');
+    buildingTexture.wrapS = THREE.RepeatWrapping;
+    buildingTexture.wrapT = THREE.RepeatWrapping;
+    // Base repeat will be adjusted per skyscraper
+
     // Road plane
     const roadTexture = textureLoader.load('/textures/road.webp');
     roadTexture.wrapS = THREE.RepeatWrapping; // Repeat along the length
@@ -388,6 +439,12 @@ function init() {
         console.log("Car textures loaded!");
         carTexturesLoaded = true;
         createCar(); // Create car after its textures are loaded
+        // Load car 2 textures next
+        return loadCar2Textures();
+    }).then(() => {
+        console.log("Car 2 textures loaded!");
+        car2TexturesLoaded = true;
+        createCar2(); // Create car 2 after its textures are loaded
         // Load NPC Textures
         return loadNpcTextures();
     }).then(() => {
@@ -522,17 +579,27 @@ async function loadTreeTextures() {
 
 async function loadCarTextures() {
     const promises = [];
-    const carPrefix = "73d00e63-ae75-4d51-a7d5-623ba7c0d48e";
+    const carPrefix = CAR_SPRITE_PREFIX; // Use the defined constant
     const basePath = '/sprites/car/'; // Path relative to /public
     const framePadded = '0000'; // Car is inanimate, use only frame 0
 
-    console.log(`Loading car textures with prefix: ${carPrefix}`);
+    console.log(`Loading car textures with prefix: ${carPrefix} for ${NUM_CAR_ANGLES} angles`);
 
-    for (const angle of ANGLES) {
-        const angleString = String(angle).replace('.', '_');
-        // Assume car uses the same _0/_5 convention
-        const anglePartInFilename = angleString.includes('_') ? angleString : `${angleString}_0`;
-        const fileName = `${carPrefix}_angle_${anglePartInFilename}_${framePadded}.webp`;
+    for (const angle of CAR_ANGLES) { // Iterate through the 64 angles
+        // Format angle for filename (e.g., 5.625 -> 5_6, 11.25 -> 11_2, 0.0 -> 0_0)
+        const angleFloor = Math.floor(angle);
+        // Custom rounding: Use Math.round normally, but handle the .25 case specially
+        const decimalPartTimes10 = (angle - angleFloor) * 10;
+        let angleDecimal;
+        // Check if the decimal part is extremely close to 2.5 (handles 11.25, 56.25, etc.)
+        if (Math.abs(decimalPartTimes10 - 2.5) < 0.01) { 
+            angleDecimal = 2; // Force to 2 for the .25 case, matching filenames
+        } else {
+            angleDecimal = Math.round(decimalPartTimes10); // Use standard rounding otherwise
+        }
+        const angleString = `${angleFloor}_${angleDecimal}`;
+
+        const fileName = `${carPrefix}_angle_${angleString}_${framePadded}.webp`;
         const filePath = basePath + fileName;
 
         const promise = new Promise((resolve, reject) => {
@@ -540,12 +607,58 @@ async function loadCarTextures() {
                 (texture) => {
                     texture.magFilter = THREE.LinearFilter;
                     texture.minFilter = THREE.LinearFilter;
-                    car.textures[angle] = texture;
+                    // Use the angle number (float) as the key
+                    car.textures[angle] = texture; 
                     resolve(texture);
                 },
                 undefined,
                 (err) => {
                     console.error(`Failed to load car texture: ${filePath}`, err);
+                    resolve(null); // Don't fail everything
+                }
+            );
+        });
+        promises.push(promise);
+    }
+    await Promise.all(promises);
+}
+
+async function loadCar2Textures() {
+    const promises = [];
+    const carPrefix = CAR2_SPRITE_PREFIX; // Use the second car's prefix
+    const basePath = '/sprites/car2/'; // Path relative to /public/sprites/car2/
+    const framePadded = '0000'; // Car is inanimate, use only frame 0
+
+    console.log(`Loading car 2 textures with prefix: ${carPrefix} for ${NUM_CAR_ANGLES} angles`);
+
+    for (const angle of CAR_ANGLES) { // Iterate through the 64 angles
+        // Format angle for filename (e.g., 5.625 -> 5_6, 11.25 -> 11_2, 0.0 -> 0_0)
+        const angleFloor = Math.floor(angle);
+        // Custom rounding: Use Math.round normally, but handle the .25 case specially
+        const decimalPartTimes10 = (angle - angleFloor) * 10;
+        let angleDecimal;
+        if (Math.abs(decimalPartTimes10 - 2.5) < 0.01) { 
+            angleDecimal = 2; 
+        } else {
+            angleDecimal = Math.round(decimalPartTimes10); 
+        }
+        const angleString = `${angleFloor}_${angleDecimal}`;
+
+        const fileName = `${carPrefix}_angle_${angleString}_${framePadded}.webp`;
+        const filePath = basePath + fileName;
+
+        const promise = new Promise((resolve, reject) => {
+            textureLoader.load(filePath,
+                (texture) => {
+                    texture.magFilter = THREE.LinearFilter;
+                    texture.minFilter = THREE.LinearFilter;
+                    // Use the angle number (float) as the key
+                    car2.textures[angle] = texture; // Store in car2's texture object
+                    resolve(texture);
+                },
+                undefined,
+                (err) => {
+                    console.error(`Failed to load car 2 texture: ${filePath}`, err);
                     resolve(null); // Don't fail everything
                 }
             );
@@ -695,7 +808,7 @@ function createGrassPatches() {
 }
 
 function createCar() {
-    const initialCarTexture = car.textures[0]; // Start with angle 0
+    const initialCarTexture = car.textures[0]; // Start with angle 0 for car 1
     if (!initialCarTexture) {
         console.warn("Initial car texture (angle 0) not loaded, cannot create car.");
         return;
@@ -713,6 +826,29 @@ function createCar() {
     car.sprite.position.copy(car.position);
     scene.add(car.sprite);
     console.log(`Created car at: ${car.position.x}, ${car.position.z}`);
+}
+
+// Create function for car 2
+function createCar2() {
+    const initialCarTexture = car2.textures[0]; // Start with angle 0 for car 2
+    if (!initialCarTexture) {
+        console.warn("Initial car 2 texture (angle 0) not loaded, cannot create car 2.");
+        return;
+    }
+
+    const material = new THREE.MeshBasicMaterial({
+        map: initialCarTexture.clone(),
+        transparent: true,
+        alphaTest: 0.5,
+        side: THREE.DoubleSide,
+        // Keep blue car brighter
+        // color: 0xaaaaaa 
+    });
+    const geometry = new THREE.PlaneGeometry(CAR_SCALE, CAR_SCALE * 0.6); // Use same scale for now
+    car2.sprite = new THREE.Mesh(geometry, material);
+    car2.sprite.position.copy(car2.position);
+    scene.add(car2.sprite);
+    console.log(`Created car 2 at: ${car2.position.x}, ${car2.position.z}`);
 }
 
 function createDustParticles() {
@@ -971,30 +1107,52 @@ function onKeyDown(event) {
     // Handle Enter/Exit Car (Takes priority over starting a punch)
     if (event.code === 'KeyE') {
         if (playerControlMode === 'character' && !character.isPunching) {
-            const distSq = character.position.distanceToSquared(car.position);
-            if (distSq < INTERACTION_DISTANCE * INTERACTION_DISTANCE) {
-                playerControlMode = 'car';
-                characterSprite.visible = false;
-                // Optional: Reset car state
-                car.velocity.set(0, 0, 0);
-                
-                // Snap camera behind car
-                cameraHorizontalAngle = car.angle; 
-                cameraVerticalAngle = 0.2; // Reset vertical angle to default
-                forceCameraUpdate(); // Force immediate camera update
-
-                console.log("Entered car");
+            let enteredCar = null;
+            // Check distance to car 1
+            const distSqCar1 = character.position.distanceToSquared(car.position);
+            if (distSqCar1 < INTERACTION_DISTANCE * INTERACTION_DISTANCE) {
+                enteredCar = car;
+                console.log("Near car 1");
             }
-        } else if (playerControlMode === 'car') {
+            // Check distance to car 2 (only if not already entering car 1)
+            if (!enteredCar) {
+                const distSqCar2 = character.position.distanceToSquared(car2.position);
+                if (distSqCar2 < INTERACTION_DISTANCE * INTERACTION_DISTANCE) {
+                    enteredCar = car2;
+                    console.log("Near car 2");
+                }
+            }
+
+            // If close to a car, enter it
+            if (enteredCar) {
+                playerControlMode = 'car';
+                currentDrivingCar = enteredCar; // Set the currently driven car
+                characterSprite.visible = false;
+                // Optional: Reset car state (applies to the entered car)
+                currentDrivingCar.velocity.set(0, 0, 0);
+                
+                // Snap camera behind the entered car
+                cameraHorizontalAngle = currentDrivingCar.angle + Math.PI; 
+                targetCameraVerticalAngle = CAMERA_VERTICAL_ANGLE_CAR_RAD;
+                forceCameraUpdate(); // Force immediate camera update based on the new target
+
+                console.log("Entered car", currentDrivingCar === car ? 1 : 2);
+            }
+        } else if (playerControlMode === 'car' && currentDrivingCar) { // Check if driving a car
             playerControlMode = 'character';
-            // Place character beside the car
-            const offset = car.forward.clone().applyAxisAngle(new THREE.Vector3(0,1,0), Math.PI / 2).multiplyScalar(1.5);
-            character.position.copy(car.position).add(offset);
-            character.position.y = GROUND_LEVEL_Y; // Ensure character is on ground
+            targetCameraVerticalAngle = CAMERA_VERTICAL_ANGLE_CHARACTER_RAD;
+            
+            // Place character beside the car they were driving - Increase offset multiplier
+            const offset = currentDrivingCar.forward.clone().applyAxisAngle(new THREE.Vector3(0,1,0), Math.PI / 2).multiplyScalar(2.5); // Increased from 1.5
+            character.position.copy(currentDrivingCar.position).add(offset);
+            character.position.y = GROUND_LEVEL_Y; 
             character.velocity.set(0, 0, 0);
-            character.state = 'idle'; // Reset character state
-            characterSprite.position.copy(character.position); // Sync sprite position immediately
+            character.state = 'idle'; 
+            characterSprite.position.copy(character.position); 
             characterSprite.visible = true;
+            
+            // Reset driving car reference
+            currentDrivingCar = null;
             console.log("Exited car");
         }
     }
@@ -1005,13 +1163,13 @@ function onKeyUp(event) {
 }
 
 function onMouseMove(event) {
-    // Adjust angles based on mouse movement
+    // Adjust horizontal angle based on mouse movement
     cameraHorizontalAngle -= event.movementX * MOUSE_SENSITIVITY;
-    cameraVerticalAngle -= event.movementY * MOUSE_SENSITIVITY;
+    // Remove vertical angle adjustment
+    // cameraVerticalAngle -= event.movementY * MOUSE_SENSITIVITY;
 
-    // Clamp vertical angle to prevent flipping over
-    // Adjust min/max as needed for desired view range
-    cameraVerticalAngle = Math.max(-Math.PI / 4, Math.min(Math.PI / 3, cameraVerticalAngle)); // Limit to 60 degrees up
+    // Remove clamping as the vertical angle is now fixed
+    // cameraVerticalAngle = Math.max(-Math.PI / 4, Math.min(Math.PI / 3, cameraVerticalAngle)); 
 }
 
 // Add MouseDown handler
@@ -1117,6 +1275,23 @@ function updateCharacter(deltaTime) {
         if (distSqCar < radiiSumCar * radiiSumCar) {
             collisionDetected = true;
             // No break needed here as it's the last check
+        }
+    }
+    // Add collision check for car 2
+    if (!collisionDetected && car2.sprite) { // Check if car2 exists
+        const dxCar2 = potentialPosition.x - car2.position.x;
+        const dzCar2 = potentialPosition.z - car2.position.z;
+        const distSqCar2 = dxCar2 * dxCar2 + dzCar2 * dzCar2;
+        const radiiSumCar2 = CHARACTER_COLLISION_RADIUS + CAR_COLLISION_RADIUS; // Assume same radius
+        if (distSqCar2 < radiiSumCar2 * radiiSumCar2) {
+            collisionDetected = true;
+        }
+    }
+
+    // Building collision check
+    if (!collisionDetected) {
+        if (isCollidingWithSkyscraper(potentialPosition, CHARACTER_COLLISION_RADIUS)) {
+            collisionDetected = true;
         }
     }
 
@@ -1289,139 +1464,167 @@ function updateTrees(deltaTime) {
     }
 }
 
-function updateCar(deltaTime) {
-    if (!car.sprite || !carTexturesLoaded) return;
+function updateCar(drivingCar, deltaTime) { // Accept the car object being driven
+    // No need for these checks now, called conditionally
+    // if (!car.sprite || !carTexturesLoaded) return; 
 
     let accelerationInput = 0;
     let steeringInput = 0;
 
-    if (playerControlMode === 'car') {
-        // Get input only when controlling car
-        if (keyboard['KeyW']) {
-            accelerationInput = 1;
-        } else if (keyboard['KeyS']) {
-            accelerationInput = -1; // Braking/Reverse
-        }
-        if (keyboard['KeyA']) {
-            steeringInput = 1;
-        } else if (keyboard['KeyD']) {
-            steeringInput = -1;
-        }
-    }
-
-    // --- Physics ---
-    // 1. Calculate current speed (magnitude of velocity along forward direction)
-    const forwardSpeed = car.velocity.dot(car.forward);
-
-    // 2. Steering (only when moving significantly)
-    if (Math.abs(forwardSpeed) > 0.1) {
-        const turnRate = CAR_TURN_SPEED * steeringInput * (forwardSpeed > 0 ? 1 : -1); // Allow reverse steering
-        car.angle += turnRate * deltaTime;
-        // Update forward vector based on angle
-        car.forward.set(Math.sin(car.angle), 0, Math.cos(car.angle)).normalize();
-    }
-
-    // 3. Acceleration/Braking
-    let accelerationForce = 0;
-    if (accelerationInput > 0) {
-        accelerationForce = CAR_ACCELERATION;
-    } else if (accelerationInput < 0) {
-        // Apply braking force opposite to current velocity direction if moving, else apply reverse acceleration
-        if (forwardSpeed > 0.1) {
-             accelerationForce = -CAR_BRAKING; // Braking
-        } else {
-             accelerationForce = CAR_ACCELERATION * accelerationInput; // Reversing (use negative input)
-        }
-       
-    }
-
-    // 4. Friction (apply opposite to velocity)
-    const frictionForce = car.velocity.clone().multiplyScalar(-CAR_FRICTION);
+    // Input is always read when this function is called (because playerControlMode === 'car')
+    if (keyboard['KeyW']) { accelerationInput = 1; }
+    else if (keyboard['KeyS']) { accelerationInput = -1; }
+    if (keyboard['KeyA']) { steeringInput = 1; }
+    else if (keyboard['KeyD']) { steeringInput = -1; }
     
-    // 5. Update Velocity
-    car.velocity.add(car.forward.clone().multiplyScalar(accelerationForce * deltaTime));
-    car.velocity.add(frictionForce.clone().multiplyScalar(deltaTime));
+    // --- Physics (operate on drivingCar) ---
+    const forwardSpeed = drivingCar.velocity.dot(drivingCar.forward);
 
-    // 6. Limit Speed (optional, clamp velocity magnitude)
-    if (car.velocity.lengthSq() > MAX_CAR_SPEED * MAX_CAR_SPEED) {
-        car.velocity.normalize().multiplyScalar(MAX_CAR_SPEED);
+    if (Math.abs(forwardSpeed) > 0.1) {
+        const turnRate = CAR_TURN_SPEED * steeringInput * (forwardSpeed > 0 ? 1 : -1); 
+        drivingCar.angle += turnRate * deltaTime;
+        drivingCar.forward.set(Math.sin(drivingCar.angle), 0, Math.cos(drivingCar.angle)).normalize();
     }
 
-    // Adjust Bloom Strength based on Speed
-    const currentSpeed = car.velocity.length();
-    const speedFactor = Math.min(currentSpeed / MAX_CAR_SPEED, 1.0); // Normalize speed 0-1
-    // Interpolate strength: higher speed -> higher strength
-    if (bloomPass) { // Ensure bloomPass exists
+    let accelerationForce = 0;
+    if (accelerationInput > 0) { accelerationForce = CAR_ACCELERATION; }
+    else if (accelerationInput < 0) {
+        if (forwardSpeed > 0.1) { accelerationForce = -CAR_BRAKING; }
+        else { accelerationForce = CAR_ACCELERATION * accelerationInput; }
+    }
+
+    const frictionForce = drivingCar.velocity.clone().multiplyScalar(-CAR_FRICTION);
+    drivingCar.velocity.add(drivingCar.forward.clone().multiplyScalar(accelerationForce * deltaTime));
+    drivingCar.velocity.add(frictionForce.clone().multiplyScalar(deltaTime));
+
+    if (drivingCar.velocity.lengthSq() > MAX_CAR_SPEED * MAX_CAR_SPEED) {
+        drivingCar.velocity.normalize().multiplyScalar(MAX_CAR_SPEED);
+    }
+    
+    // Adjust Bloom Strength based on Speed of the driven car
+    const currentSpeed = drivingCar.velocity.length();
+    const speedFactor = Math.min(currentSpeed / MAX_CAR_SPEED, 1.0); 
+    if (bloomPass) { 
         bloomPass.strength = BASE_BLOOM_STRENGTH + (MAX_BLOOM_STRENGTH - BASE_BLOOM_STRENGTH) * speedFactor;
     }
 
-    // 7. Calculate Potential Position & Check Collision (Trees)
-    const potentialPosition = car.position.clone().add(car.velocity.clone().multiplyScalar(deltaTime));
+    const potentialPosition = drivingCar.position.clone().add(drivingCar.velocity.clone().multiplyScalar(deltaTime));
     let collisionDetected = false;
+    // Collision check vs Trees
     for (const treePos of treePositions) {
         const dx = potentialPosition.x - treePos.x;
         const dz = potentialPosition.z - treePos.z;
         const distSqXZ = dx * dx + dz * dz; 
         const radiiSum = CAR_COLLISION_RADIUS + TREE_COLLISION_RADIUS;
-        const radiiSumSq = radiiSum * radiiSum; 
-
-        if (distSqXZ < radiiSumSq) {
-            // Simple stop on collision - more complex physics needed for bouncing etc.
-            car.velocity.set(0, 0, 0); // Stop car completely on collision
+        if (distSqXZ < radiiSum * radiiSum) {
+            // Calculate rebound vector
+            const reboundDir = drivingCar.position.clone().sub(treePos).normalize();
+            reboundDir.y = 0; // Keep rebound horizontal
+            drivingCar.velocity.copy(reboundDir).multiplyScalar(CAR_REBOUND_SPEED); // Apply rebound speed
             collisionDetected = true;
             break; 
         }
     }
+    // Collision check vs the OTHER car
+    const otherCar = (drivingCar === car) ? car2 : car;
+    if (!collisionDetected && otherCar.sprite) {
+        const dx = potentialPosition.x - otherCar.position.x;
+        const dz = potentialPosition.z - otherCar.position.z;
+        const distSqXZ = dx * dx + dz * dz;
+        const radiiSum = CAR_COLLISION_RADIUS + CAR_COLLISION_RADIUS; // Car vs Car
+        if (distSqXZ < radiiSum * radiiSum) {
+             // Calculate rebound vector
+             const reboundDir = drivingCar.position.clone().sub(otherCar.position).normalize();
+             reboundDir.y = 0; // Keep rebound horizontal
+             drivingCar.velocity.copy(reboundDir).multiplyScalar(CAR_REBOUND_SPEED); 
+             // Maybe apply some force to the other car too?
+             // const impulseDir = drivingCar.position.clone().sub(otherCar.position).normalize();
+             // otherCar.velocity.add(impulseDir.multiplyScalar(-CAR_REBOUND_SPEED * 0.5)); // Push other car slightly less
+             collisionDetected = true;
+        }
+    }
+    // Collision check vs Buildings
+    let buildingCollisionPoint = null; 
+    if (!collisionDetected) { // Only check if no other collision detected yet
+         buildingCollisionPoint = isCollidingWithSkyscraper(potentialPosition, CAR_COLLISION_RADIUS);
+         if (buildingCollisionPoint) {
+             // Calculate rebound vector from building center (approximation)
+             const reboundDir = drivingCar.position.clone().sub(buildingCollisionPoint).normalize();
+             reboundDir.y = 0; // Keep rebound horizontal
+             drivingCar.velocity.copy(reboundDir).multiplyScalar(CAR_REBOUND_SPEED); 
+             collisionDetected = true;
+         }
+    }
 
-    // 8. Update Position (if no collision)
+    // Update position ONLY if no collision occurred *this frame*
     if (!collisionDetected) {
-        car.position.add(car.velocity.clone().multiplyScalar(deltaTime));
+        drivingCar.position.add(drivingCar.velocity.clone().multiplyScalar(deltaTime));
+    } // Else: Position doesn't update, velocity is now the rebound velocity
+
+    // Use the specific car's baseY for the ground check
+    if (drivingCar.position.y < drivingCar.baseY) {
+        drivingCar.position.y = drivingCar.baseY;
+        drivingCar.velocity.y = 0; 
     }
 
-    // 9. Keep car on ground (simple check)
-    if (car.position.y < CAR_Y_POS) {
-        car.position.y = CAR_Y_POS;
-        car.velocity.y = 0; // Stop vertical velocity if it hits ground
+    // --- Update Sprite --- (Visuals handled by updateCarVisuals now)
+    // drivingCar.sprite.position.copy(drivingCar.position); // Position update still needed here?
+    // Let updateCarVisuals handle this, it's called right after
+    updateCarVisuals(drivingCar, deltaTime); // Update visuals of the driven car
+}
+
+// Renamed updateCar2 to updateCarVisuals and made it generic
+function updateCarVisuals(carObj, deltaTime) { 
+    if (!carObj.sprite) return; // Simplified check
+
+    // --- Apply Friction --- (Moved from updateCar)
+    // Apply friction regardless of whether car is driven
+    const frictionForce = carObj.velocity.clone().multiplyScalar(-CAR_FRICTION);
+    carObj.velocity.add(frictionForce.clone().multiplyScalar(deltaTime));
+
+    // --- Update Position based on Velocity --- (Moved from updateCar)
+    // Collision detection for non-driven cars isn't implemented here,
+    // they might clip trees/other cars if left moving.
+    // For now, just update position based on velocity.
+    carObj.position.add(carObj.velocity.clone().multiplyScalar(deltaTime));
+
+    // --- Ground Check --- (Moved from updateCar)
+    if (carObj.position.y < carObj.baseY) {
+        carObj.position.y = carObj.baseY;
+        carObj.velocity.y = 0; 
     }
 
-    // --- Update Sprite ---
-    car.sprite.position.copy(car.position);
+    // --- Update Sprite Position --- 
+    carObj.sprite.position.copy(carObj.position);
 
-    // Update sprite angle based on car's angle relative to camera
-    const vecToCam = new THREE.Vector3().subVectors(camera.position, car.position);
+    // --- Update Sprite Angle --- 
+    const vecToCam = new THREE.Vector3().subVectors(camera.position, carObj.position);
     vecToCam.y = 0;
     
     if (vecToCam.lengthSq() > 0.001) {
         vecToCam.normalize();
-        // Car angle (world space)
-        const carWorldAngleRad = car.angle; 
-        // Camera angle (world space, from origin to camera projection)
+        const carWorldAngleRad = carObj.angle; 
         const camAngleRad = Math.atan2(vecToCam.x, vecToCam.z);
-        
-        // Calculate angle FROM which camera views the car, relative to car's forward
         let relativeAngleRad = camAngleRad - carWorldAngleRad;
-        relativeAngleRad = (relativeAngleRad + Math.PI * 4) % (Math.PI * 2); // Normalize to [0, 2PI)
-
+        relativeAngleRad = (relativeAngleRad + Math.PI * 4) % (Math.PI * 2); 
         let angleDeg = THREE.MathUtils.radToDeg(relativeAngleRad);
         
-        // Map view angle to sprite angle (0 view = 180 sprite, 180 view = 0 sprite)
-        // angleDeg = (angleDeg + 180) % 360;
-        
-        const angleIncrement = 22.5;
-        const numAngles = ANGLES.length;
+        const angleIncrement = CAR_ANGLE_INCREMENT;
+        const numAngles = NUM_CAR_ANGLES;
         const quantizedIndex = Math.round(angleDeg / angleIncrement) % numAngles;
-        car.currentAngleSprite = ANGLES[quantizedIndex];
+        carObj.currentAngleSprite = CAR_ANGLES[quantizedIndex]; 
 
-        const targetTexture = car.textures[car.currentAngleSprite];
-        if (targetTexture && car.sprite.material.map !== targetTexture) {
-            car.sprite.material.map = targetTexture;
-            car.sprite.material.needsUpdate = true;
+        const targetTexture = carObj.textures[carObj.currentAngleSprite];
+        if (targetTexture && carObj.sprite.material.map !== targetTexture) {
+            carObj.sprite.material.map = targetTexture;
+            carObj.sprite.material.needsUpdate = true;
         }
-    }
+    } // else: Angle calc skipped if camera is directly above/below
 
-    // Billboard the sprite using lookAt
-    const lookAtTarget = new THREE.Vector3(camera.position.x, car.sprite.position.y, camera.position.z);
-    car.sprite.lookAt(lookAtTarget);
+    // Billboard the sprite using lookAt (Moved outside the if block)
+    // Correct the lookAt target to use camera's Z position
+    const lookAtTarget = new THREE.Vector3(camera.position.x, carObj.sprite.position.y, camera.position.z); 
+    carObj.sprite.lookAt(lookAtTarget);
 }
 
 // Force camera update (used for snapping)
@@ -1430,8 +1633,8 @@ function forceCameraUpdate() {
 
     let currentTargetPos;
     let offsetToUse;
-    if (playerControlMode === 'car' && car.sprite) {
-        currentTargetPos = car.position.clone().add(CAMERA_TARGET_OFFSET);
+    if (playerControlMode === 'car' && currentDrivingCar) { // Use currentDrivingCar
+        currentTargetPos = currentDrivingCar.position.clone().add(CAMERA_TARGET_OFFSET);
         offsetToUse = CAMERA_OFFSET_CAR; // Use car offset
     } else if (playerControlMode === 'character' && character) {
         currentTargetPos = character.position.clone().add(CAMERA_TARGET_OFFSET);
@@ -1463,8 +1666,8 @@ function updateCamera(deltaTime) {
     let currentTargetPos;
     let isDriving = false;
     let offsetToUse = CAMERA_OFFSET; // Default to character offset
-    if (playerControlMode === 'car' && car.sprite) {
-        currentTargetPos = car.position.clone().add(CAMERA_TARGET_OFFSET);
+    if (playerControlMode === 'car' && currentDrivingCar) { // Use currentDrivingCar
+        currentTargetPos = currentDrivingCar.position.clone().add(CAMERA_TARGET_OFFSET);
         isDriving = true;
         offsetToUse = CAMERA_OFFSET_CAR; // Use car offset
     } else if (playerControlMode === 'character' && character) {
@@ -1477,9 +1680,9 @@ function updateCamera(deltaTime) {
 
     // --- Update Camera Angles ---
     let finalHorizontalAngle = cameraHorizontalAngle;
-    if (isDriving) {
+    if (isDriving && currentDrivingCar) { // Check currentDrivingCar exists
         // Target angle is PI radians opposite the car's angle (to look from behind)
-        const targetHorizontalAngle = car.angle + Math.PI; 
+        const targetHorizontalAngle = currentDrivingCar.angle + Math.PI; 
 
         // Lerp horizontal angle towards target angle
         // Need to handle angle wrapping correctly for lerp
@@ -1490,7 +1693,11 @@ function updateCamera(deltaTime) {
         finalHorizontalAngle = cameraHorizontalAngle; // Use the lerped angle
     } // else: Use the mouse-controlled angle
 
-    // Use the mouse-controlled vertical angle (already clamped in onMouseMove)
+    // Smoothly interpolate the actual vertical angle towards the target
+    const verticalLerpFactor = 1.0 - Math.exp(-CAMERA_VERTICAL_SMOOTH_SPEED * deltaTime);
+    cameraVerticalAngle = THREE.MathUtils.lerp(cameraVerticalAngle, targetCameraVerticalAngle, verticalLerpFactor);
+
+    // Use the interpolated vertical angle
     const finalVerticalAngle = cameraVerticalAngle;
 
     // --- Calculate Camera Position ---
@@ -1590,37 +1797,75 @@ function updateNpcs(deltaTime) {
             }
         }
         // Vs Car
-        if (!collisionDetected && car.sprite) {
+        if (!collisionDetected && car.sprite && currentDrivingCar !== car) {
              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS;
              const distSq = potentialPosition.distanceToSquared(car.position);
              if (distSq < radiiSum * radiiSum) {
                  collisionDetected = true;
-                 // --- Car Hit NPC Logic --- 
-                 if (npc.state !== 'hit') { // Check if not already hit
-                     console.log("Car hit NPC!", npc.id);
+                 // --- Static Car 1 Hit NPC Logic --- 
+                 if (npc.state !== 'hit') { 
+                     console.log("Static Car 1 hit NPC!", npc.id);
                      npc.state = 'hit';
- 
-                     // Calculate impulse direction from car's velocity
-                     let impulseDirection = car.velocity.clone();
-                     if (impulseDirection.lengthSq() < 0.01) { // If car is slow/stopped, use car forward
-                         impulseDirection = car.forward.clone();
-                     }
+                     // Impulse from car's forward (or default if static)
+                     let impulseDirection = car.forward.clone(); 
+                     if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1); // Default impulse
                      impulseDirection.normalize();
- 
-                     npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL);
-                     npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL; // Add vertical impulse
-                     npc.timeUntilNextDecision = 10; // Prevent decisions while flying
-                     createPowEffect(npc.position); // Create POW effect
-                     // Skip further NPC movement/logic for this frame after being hit by car
-                     // Need to update sprite position based on the new velocity applied *this frame*
+                     npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5); // Less impulse
+                     npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
+                     npc.timeUntilNextDecision = 10; 
+                     createPowEffect(npc.position);
                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
                      npc.sprite.position.copy(npc.position);
-                     // We already continue in the main hit state logic, but ensure collision stops further processing below
-                     // continue; // This might skip essential updates like billboarding if hit logic isn't self-contained
                  }
-                 // --- End Car Hit NPC Logic ---
               }
          }
+         // Vs Car 2
+         if (!collisionDetected && car2.sprite && currentDrivingCar !== car2) {
+              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
+              const distSq = potentialPosition.distanceToSquared(car2.position);
+              if (distSq < radiiSum * radiiSum) {
+                  collisionDetected = true;
+                  // --- Static Car 2 Hit NPC Logic --- 
+                  if (npc.state !== 'hit') { 
+                      console.log("Static Car 2 hit NPC!", npc.id);
+                      npc.state = 'hit';
+                      let impulseDirection = car2.forward.clone();
+                      if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1);
+                      impulseDirection.normalize();
+                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
+                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
+                      npc.timeUntilNextDecision = 10; 
+                      createPowEffect(npc.position);
+                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
+                      npc.sprite.position.copy(npc.position);
+                  }
+               }
+          }
+         // Vs DRIVEN Car (if any)
+         if (!collisionDetected && playerControlMode === 'car' && currentDrivingCar && currentDrivingCar.sprite) {
+              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
+              const distSq = potentialPosition.distanceToSquared(currentDrivingCar.position);
+              if (distSq < radiiSum * radiiSum) {
+                  collisionDetected = true;
+                  // --- DRIVEN Car Hit NPC Logic --- 
+                  if (npc.state !== 'hit') { 
+                      console.log("DRIVEN Car hit NPC!", npc.id);
+                      npc.state = 'hit';
+                      let impulseDirection = currentDrivingCar.velocity.clone(); 
+                      if (impulseDirection.lengthSq() < 0.01) {
+                          impulseDirection = currentDrivingCar.forward.clone();
+                      }
+                      impulseDirection.normalize();
+                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL);
+                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL; 
+                      npc.timeUntilNextDecision = 10; 
+                      createPowEffect(npc.position);
+                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
+                      npc.sprite.position.copy(npc.position);
+                  }
+                  // --- End DRIVEN Car Hit NPC Logic ---
+               }
+          }
          // Vs Player
         if (!collisionDetected && playerControlMode === 'character') {
              const radiiSum = NPC_COLLISION_RADIUS + CHARACTER_COLLISION_RADIUS;
@@ -1637,6 +1882,12 @@ function updateNpcs(deltaTime) {
                 if (potentialPosition.distanceToSquared(otherNpc.position) < radiiSum * radiiSum) {
                     collisionDetected = true; break;
                 }
+            }
+        }
+        // Vs Buildings
+        if (!collisionDetected) {
+            if (isCollidingWithSkyscraper(potentialPosition, NPC_COLLISION_RADIUS)) {
+                collisionDetected = true;
             }
         }
         
@@ -1656,43 +1907,46 @@ function updateNpcs(deltaTime) {
         }
         npc.sprite.position.copy(npc.position);
 
-        // --- Animation (only if not hit) ---
-        npc.frameTime += deltaTime;
-        const currentFrameDuration = npc.state === 'idle' ? NPC_IDLE_FRAME_DURATION : NPC_WALK_FRAME_DURATION;
-        if (npc.frameTime >= currentFrameDuration) {
-            npc.frameTime -= currentFrameDuration;
-            npc.currentFrame = (npc.currentFrame + 1) % NPC_FRAME_COUNT;
+        // --- Animation ---
+        if (npc.state !== 'hit') { // Only update animation frame if not in hit state
+            npc.frameTime += deltaTime;
+            const currentFrameDuration = npc.state === 'idle' ? NPC_IDLE_FRAME_DURATION : NPC_WALK_FRAME_DURATION;
+            if (npc.frameTime >= currentFrameDuration) {
+                npc.frameTime -= currentFrameDuration;
+                npc.currentFrame = (npc.currentFrame + 1) % NPC_FRAME_COUNT;
+            }
         }
 
-        // --- Angle Calculation (only if not hit) ---
-        // Removed the block that forced angle to 180 when walking.
-        // The following logic now applies to all non-hit states.
-        const vecToCam = new THREE.Vector3().subVectors(camera.position, npc.position);
-        vecToCam.y = 0;
-        vecToCam.normalize();
-        
-        const facingDirection = npc.forward.clone(); // Use NPC's forward vector (now fixed when walking)
-        facingDirection.y = 0;
-        if (facingDirection.lengthSq() === 0) facingDirection.z = -1; // Default if no direction (e.g., initial idle)
-        facingDirection.normalize();
+        // --- Angle Calculation ---
+        // Skip angle recalculation if the NPC is in the 'hit' state to preserve the pre-hit angle
+        if (npc.state !== 'hit') {
+            const vecToCam = new THREE.Vector3().subVectors(camera.position, npc.position);
+            vecToCam.y = 0;
+            vecToCam.normalize();
+            const facingDirection = npc.forward.clone(); // Use NPC's forward vector (now fixed when walking)
+            facingDirection.y = 0;
+            if (facingDirection.lengthSq() === 0) facingDirection.z = -1; // Default if no direction (e.g., initial idle)
+            facingDirection.normalize();
 
-        if (facingDirection.lengthSq() > 0.001 && vecToCam.lengthSq() > 0.001) {
-            const npcAngleRad = Math.atan2(facingDirection.x, facingDirection.z);
-            const camAngleRad = Math.atan2(vecToCam.x, vecToCam.z);
-            let relativeAngleRad = npcAngleRad - camAngleRad;
-            relativeAngleRad = (relativeAngleRad + Math.PI * 3) % (Math.PI * 2) - Math.PI; // Normalize -PI to PI
-            let angleDeg = THREE.MathUtils.radToDeg(relativeAngleRad);
-            angleDeg = (angleDeg + 360) % 360; // Normalize 0-360
-            
-            // Quantize to nearest NPC angle (45 degree increments)
-            const quantizedIndex = Math.round(angleDeg / angleIncrement) % numAngles;
-            npc.currentAngle = NPC_ANGLES[quantizedIndex];
-        } // else keep previous angle
+            if (facingDirection.lengthSq() > 0.001 && vecToCam.lengthSq() > 0.001) {
+                const npcAngleRad = Math.atan2(facingDirection.x, facingDirection.z);
+                const camAngleRad = Math.atan2(vecToCam.x, vecToCam.z);
+                let relativeAngleRad = npcAngleRad - camAngleRad;
+                relativeAngleRad = (relativeAngleRad + Math.PI * 3) % (Math.PI * 2) - Math.PI; // Normalize -PI to PI
+                let angleDeg = THREE.MathUtils.radToDeg(relativeAngleRad);
+                angleDeg = (angleDeg + 360) % 360; // Normalize 0-360
+                
+                // Quantize to nearest NPC angle (45 degree increments)
+                const quantizedIndex = Math.round(angleDeg / angleIncrement) % numAngles;
+                npc.currentAngle = NPC_ANGLES[quantizedIndex];
+            } // else keep previous angle
+        } // End of check for npc.state !== 'hit' for angle calculation
 
-        // --- Texture Update (only if not hit) ---
-        const currentNpcTextures = npcTextures[npc.state]?.[npc.currentAngle];
-        if (currentNpcTextures && currentNpcTextures[npc.currentFrame]) {
-            npc.sprite.material.map = currentNpcTextures[npc.currentFrame];
+        // --- Texture Update ---
+        // Always update texture based on current state, angle, and frame
+        const stateTextures = npcTextures[npc.state]; // Use npcTextures, not textures
+        if (stateTextures && stateTextures[npc.currentAngle] && stateTextures[npc.currentAngle][npc.currentFrame]) {
+            npc.sprite.material.map = stateTextures[npc.currentAngle][npc.currentFrame];
             npc.sprite.material.needsUpdate = true;
         } else {
              // Fallback if texture missing
@@ -1724,9 +1978,25 @@ function animate() {
     if (treeTexturesLoaded) {
         updateTrees(deltaTime);
     }
-    if (carTexturesLoaded) {
-        updateCar(deltaTime);
+    
+    // Update the currently driven car (if any)
+    if (playerControlMode === 'car' && currentDrivingCar) {
+        updateCar(currentDrivingCar, deltaTime);
+    } else {
+        // Reset bloom if not driving
+        if (bloomPass && bloomPass.strength !== BASE_BLOOM_STRENGTH) {
+            bloomPass.strength = BASE_BLOOM_STRENGTH;
+        }
     }
+    
+    // Update visuals for non-driven cars
+    if (carTexturesLoaded && currentDrivingCar !== car) {
+        updateCarVisuals(car, deltaTime);
+    }
+    if (car2TexturesLoaded && currentDrivingCar !== car2) {
+        updateCarVisuals(car2, deltaTime);
+    }
+
     if (npcTexturesLoaded) { // Update NPCs
         updateNpcs(deltaTime);
     }
@@ -1836,3 +2106,24 @@ function updateParticles(deltaTime) {
 
 // --- Start ---
 init(); 
+
+// --- Collision Helper Functions ---
+function isCollidingWithSkyscraper(position, radius) {
+    const halfBase = SKYSCRAPER_BASE_SIZE / 2;
+    for (const buildingPos of skyscraperPositions) {
+        const minX = buildingPos.x - halfBase;
+        const maxX = buildingPos.x + halfBase;
+        const minZ = buildingPos.z - halfBase;
+        const maxZ = buildingPos.z + halfBase;
+
+        // Check Circle vs AABB collision (Simplified XZ check)
+        const closestX = Math.max(minX, Math.min(position.x, maxX));
+        const closestZ = Math.max(minZ, Math.min(position.z, maxZ));
+        const distanceSq = (position.x - closestX) ** 2 + (position.z - closestZ) ** 2;
+        
+        if (distanceSq < radius * radius) {
+            return buildingPos; // Return the position of the collided building
+        }
+    }
+    return null; // No collision
+}

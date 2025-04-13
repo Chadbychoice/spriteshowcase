@@ -51,10 +51,15 @@ const CAR_ANGLE_INCREMENT = 360 / NUM_CAR_ANGLES; // 5.625 degrees
 // Generate the 64 angles for the car (reused for both)
 const CAR_ANGLES = Array.from({ length: NUM_CAR_ANGLES }, (_, i) => i * CAR_ANGLE_INCREMENT);
 
+// Define similar constants for Tree angles
+const NUM_TREE_ANGLES = 64;
+const TREE_ANGLE_INCREMENT = 360 / NUM_TREE_ANGLES; // 5.625 degrees
+const TREE_ANGLES = Array.from({ length: NUM_TREE_ANGLES }, (_, i) => i * TREE_ANGLE_INCREMENT);
+
 const CAMERA_TARGET_OFFSET = new THREE.Vector3(0, 1.0, 0); // Look slightly above character feet
 const CAMERA_OFFSET = new THREE.Vector3(0, 1.6, 1.8); // Zoom even closer (for character)
 // Increase Y offset for car to raise camera height
-const CAMERA_OFFSET_CAR = new THREE.Vector3(0, 3.0, 5.0); // Y increased from 2.5 to 3.0
+const CAMERA_OFFSET_CAR = new THREE.Vector3(0, 3.5, 2.0); // Y decreased from 4.5 to 3.5 to lower camera
 const CAMERA_MIN_Y = 0.5; // Minimum height camera can go (prevent floor clipping)
 const CAMERA_SMOOTH_SPEED = 5.0; // How quickly the camera position follows (higher is faster)
 const CAMERA_ANGLE_FOLLOW_SPEED = 5.0; // Make camera angle follow faster
@@ -100,7 +105,7 @@ const CAR_REBOUND_SPEED = 5.0; // Speed at which car bounces off obstacles
 const GROUND_LEVEL_Y = SPRITE_SCALE / 2 - 0.075; // Store ground level calculation
 const TREE_Y_POS = TREE_SCALE / 2 - 0.4; // Lower trees further
 const GRASS_Y_POS = 0.005; // Slightly above ground, below road/trees
-const CAR_Y_POS = CAR_SCALE / 2 - 2.5; // Lower car tiny bit more
+const CAR_Y_POS = CAR_SCALE / 2 - 2.49; // Raised by 0.01 (from -2.5)
 
 let playerControlMode = 'character'; // 'character' or 'car'
 let currentDrivingCar = null; // Reference to the car object being driven, or null
@@ -168,6 +173,7 @@ let npcs = []; // Array to hold NPC state objects
 let npcTextures = { idle: {}, walk: {} }; // NPC Textures
 let grassTexture = null; // Single Grass Texture
 let powTexture = null; // Texture for the POW effect
+let bangTexture = null; // Texture for the BANG effect (car hits)
 let activePowEffects = []; // Array for managing active POW sprites
 let buildingTexture = null; // Texture for skyscrapers
 
@@ -421,6 +427,8 @@ function init() {
 
     // Load POW Texture
     powTexture = textureLoader.load('/sprites/effects/pow.webp');
+    // Load BANG Texture
+    bangTexture = textureLoader.load('/sprites/effects/bang.webp');
 
     // Load Character Textures
     loadAllTextures().then(() => {
@@ -543,17 +551,27 @@ async function loadAllTextures() {
 
 async function loadTreeTextures() {
     const promises = [];
-    const treePrefix = "a74120be-2c05-4551-8334-bea3dab1fa74";
+    const treePrefix = "fda205b8-f0cb-4812-8a38-5b955782afaf"; // Use the correct tree prefix from the screenshot
     const basePath = '/sprites/objects/tree/'; // Path relative to /public
     const framePadded = '0000'; // Inanimate objects use only frame 0
 
-    console.log(`Loading tree textures with prefix: ${treePrefix}`);
+    console.log(`Loading tree textures with prefix: ${treePrefix} for ${NUM_TREE_ANGLES} angles`);
 
-    for (const angle of ANGLES) {
-        const angleString = String(angle).replace('.', '_');
-        // Trees seem to use the same _0/_5 convention in filenames as characters
-        const anglePartInFilename = angleString.includes('_') ? angleString : `${angleString}_0`;
-        const fileName = `${treePrefix}_angle_${anglePartInFilename}_${framePadded}.webp`;
+    for (const angle of TREE_ANGLES) { // Iterate through the 64 TREE_ANGLES
+        // Format angle for filename (e.g., 5.625 -> 5_6, 11.25 -> 11_2, 0.0 -> 0_0) - Same logic as car
+        const angleFloor = Math.floor(angle);
+        const decimalPartTimes10 = (angle - angleFloor) * 10;
+        let angleDecimal;
+        if (Math.abs(decimalPartTimes10 - 2.5) < 0.01) {
+            angleDecimal = 2;
+        } else if (Math.abs(decimalPartTimes10 - 7.5) < 0.01) { // Handle .75 case (e.g., 67.5 -> 67_8)
+             angleDecimal = 8; 
+        } else {
+            angleDecimal = Math.round(decimalPartTimes10);
+        }
+        const angleString = `${angleFloor}_${angleDecimal}`;
+
+        const fileName = `${treePrefix}_angle_${angleString}_${framePadded}.webp`;
         const filePath = basePath + fileName;
 
         const promise = new Promise((resolve, reject) => {
@@ -561,14 +579,14 @@ async function loadTreeTextures() {
                 (texture) => {
                     texture.magFilter = THREE.LinearFilter;
                     texture.minFilter = THREE.LinearFilter;
-                    treeTextures[angle] = texture;
+                    treeTextures[angle] = texture; // Use the float angle as the key
                     resolve(texture);
                 },
                 undefined,
                 (err) => {
                     console.error(`Failed to load tree texture: ${filePath}`, err);
                     // Don't reject the whole process, just skip this texture
-                    resolve(null); 
+                    resolve(null);
                 }
             );
         });
@@ -1026,11 +1044,17 @@ function createNpcs() {
 }
 
 // --- POW Effect Functions ---
-function createPowEffect(position) {
-    if (!powTexture) return;
+function createPowEffect(position, effectType = 'punch') {
+    // Select texture based on type
+    const effectTexture = (effectType === 'car') ? bangTexture : powTexture;
+
+    if (!effectTexture) {
+        console.warn("Effect texture not loaded, cannot create effect.");
+        return;
+    }
 
     const material = new THREE.MeshBasicMaterial({
-        map: powTexture,
+        map: effectTexture.clone(),
         transparent: true,
         alphaTest: 0.1,
         depthWrite: false,
@@ -1432,26 +1456,27 @@ function updateCharacter(deltaTime) {
 function updateTrees(deltaTime) {
     if (!treeTexturesLoaded) return;
 
-    const angleIncrement = 22.5; // Angle step for 16 directions
-    const numAngles = ANGLES.length; // Should be 16
+    // Use TREE constants now
+    const angleIncrement = TREE_ANGLE_INCREMENT; 
+    const numAngles = NUM_TREE_ANGLES; 
 
     for (const treeSprite of treeSprites) {
         // 1. Calculate Angle to Camera
         const vecToCam = new THREE.Vector3().subVectors(camera.position, treeSprite.position);
         vecToCam.y = 0; // Ignore vertical difference
-        
+
         if (vecToCam.lengthSq() > 0.001) {
             vecToCam.normalize();
             const camAngleRad = Math.atan2(vecToCam.x, vecToCam.z);
             let angleDeg = THREE.MathUtils.radToDeg(camAngleRad);
             angleDeg = (angleDeg + 360) % 360; // Normalize to [0, 360)
-            
-            // Quantize to nearest angle
+
+            // Quantize to nearest angle (using TREE constants)
             const quantizedIndex = Math.round(angleDeg / angleIncrement) % numAngles;
-            const quantizedAngle = ANGLES[quantizedIndex];
-            
+            const quantizedAngle = TREE_ANGLES[quantizedIndex]; // Get the float angle key
+
             // 2. Update Texture if needed
-            const targetTexture = treeTextures[quantizedAngle];
+            const targetTexture = treeTextures[quantizedAngle]; // Use float angle key for lookup
             if (targetTexture && treeSprite.material.map !== targetTexture) {
                 treeSprite.material.map = targetTexture;
                 treeSprite.material.needsUpdate = true;
@@ -1751,9 +1776,9 @@ function updateNpcs(deltaTime) {
                 npc.frameTime = 0;
                 npc.timeUntilNextDecision = 1.0 + Math.random() * 2.0; // Recover quickly
             }
-            // Billboarding (still needed)
-            const lookAtTarget = new THREE.Vector3(camera.position.x, npc.sprite.position.y, camera.position.z);
-            npc.sprite.lookAt(lookAtTarget);
+            // Remove the redundant billboarding from here
+            // const lookAtTarget = new THREE.Vector3(camera.position.x, npc.sprite.position.y, camera.position.z);
+            // npc.sprite.lookAt(lookAtTarget);
             continue; // Skip normal logic if hit
         }
 
@@ -1813,7 +1838,7 @@ function updateNpcs(deltaTime) {
                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5); // Less impulse
                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
                      npc.timeUntilNextDecision = 10; 
-                     createPowEffect(npc.position);
+                     createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
                      npc.sprite.position.copy(npc.position);
                  }
@@ -1835,7 +1860,7 @@ function updateNpcs(deltaTime) {
                       npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
                       npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
                       npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position);
+                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
                       npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
                       npc.sprite.position.copy(npc.position);
                   }
@@ -1859,7 +1884,7 @@ function updateNpcs(deltaTime) {
                       npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL);
                       npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL; 
                       npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position);
+                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
                       npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
                       npc.sprite.position.copy(npc.position);
                   }
@@ -1943,13 +1968,15 @@ function updateNpcs(deltaTime) {
         } // End of check for npc.state !== 'hit' for angle calculation
 
         // --- Texture Update ---
-        // Always update texture based on current state, angle, and frame
-        const stateTextures = npcTextures[npc.state]; // Use npcTextures, not textures
+        // Determine which state's textures to use
+        const textureStateToUse = (npc.state === 'hit') ? 'idle' : npc.state; // Use idle textures if hit
+        const stateTextures = npcTextures[textureStateToUse]; 
+
         if (stateTextures && stateTextures[npc.currentAngle] && stateTextures[npc.currentAngle][npc.currentFrame]) {
             npc.sprite.material.map = stateTextures[npc.currentAngle][npc.currentFrame];
             npc.sprite.material.needsUpdate = true;
         } else {
-             // Fallback if texture missing
+             // Fallback if texture missing (e.g., angle/frame combo invalid for the chosen state)
              const fallbackTexture = npcTextures.idle?.[0]?.[0]; 
              if (fallbackTexture && npc.sprite.material.map !== fallbackTexture) {
                   npc.sprite.material.map = fallbackTexture;
@@ -1958,8 +1985,10 @@ function updateNpcs(deltaTime) {
         }
 
         // --- Billboarding (only if not hit) ---
-        const lookAtTarget = new THREE.Vector3(camera.position.x, npc.sprite.position.y, camera.position.z);
-        npc.sprite.lookAt(lookAtTarget);
+        if (npc.state !== 'hit') { // Add check here
+            const lookAtTarget = new THREE.Vector3(camera.position.x, npc.sprite.position.y, camera.position.z);
+            npc.sprite.lookAt(lookAtTarget);
+        }
     }
 }
 

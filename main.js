@@ -8,12 +8,16 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 // Import necessary passes for saturation and ambient dust
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { ColorCorrectionShader } from 'three/examples/jsm/shaders/ColorCorrectionShader.js';
+// Import Water
+import { Water } from 'three/examples/jsm/objects/Water.js';
 
 let scene, camera, renderer;
 let composer;
 let bloomPass; // Declare bloomPass in the global scope
 let characterSprite;
 let clock = new THREE.Clock();
+let crtPass; // Add variable for CRT pass
+let isCrtEnabled = false; // State for CRT effect
 
 // --- Configuration ---
 const SPRITE_PATH = '/sprites/';
@@ -46,6 +50,13 @@ const MAX_CAR_SPEED = 30.0; // Increase max speed again
 const INTERACTION_DISTANCE = 2.0; // Max distance to interact with car
 const CAR_SPRITE_PREFIX = "bc66dce3-9546-48ba-b62e-3e93e8b7c623"; // Updated prefix
 const CAR2_SPRITE_PREFIX = "8cc5ca8e-efd6-48ea-8962-cb703a81bf5f"; // Prefix for the blue car
+const CAR3_SPRITE_PREFIX = "0ec4b50a-30a0-4c57-a8aa-3a92326f1d5a"; // Prefix for car3
+const CAR4_SPRITE_PREFIX = "99ea0672-e725-492e-b3e7-77fce135ee7c"; // Prefix for car4
+const CAR5_SPRITE_PREFIX = "47d3ec38-0b11-4ddc-911b-8040d9cff939"; // Prefix for car5
+const CAR6_SPRITE_PREFIX = "890f9dba-c49b-4ff5-812a-bd64c3b5fd19"; // Prefix for car6
+const CAR7_SPRITE_PREFIX = "a44609b0-07fe-4d3c-aed6-85a681fe78e1"; // Prefix for car7
+const CAR8_SPRITE_PREFIX = "5f43375b-a740-48e5-b8c6-22e371a63e27"; // Prefix for car8
+const CAR9_SPRITE_PREFIX = "221f90e0-2acd-47a4-afa2-14a485bceb1c"; // Prefix for car9
 const NUM_CAR_ANGLES = 64;
 const CAR_ANGLE_INCREMENT = 360 / NUM_CAR_ANGLES; // 5.625 degrees
 // Generate the 64 angles for the car (reused for both)
@@ -61,20 +72,30 @@ const CAMERA_OFFSET = new THREE.Vector3(0, 1.6, 1.8); // Zoom even closer (for c
 // Increase Y offset for car to raise camera height
 const CAMERA_OFFSET_CAR = new THREE.Vector3(0, 3.5, 2.0); // Y decreased from 4.5 to 3.5 to lower camera
 const CAMERA_MIN_Y = 0.5; // Minimum height camera can go (prevent floor clipping)
-const CAMERA_SMOOTH_SPEED = 5.0; // How quickly the camera position follows (higher is faster)
-const CAMERA_ANGLE_FOLLOW_SPEED = 5.0; // Make camera angle follow faster
-const CAMERA_VERTICAL_SMOOTH_SPEED = 8.0; // Speed for vertical angle lerping
-const MOUSE_SENSITIVITY = 0.002;
+const CAMERA_SMOOTH_SPEED = 8.0; // Increased from 5.0 for snappier response
+const CAMERA_ANGLE_FOLLOW_SPEED = 8.0; // Increased from 5.0 for snappier turning
+const CAMERA_VERTICAL_SMOOTH_SPEED = 12.0; // Increased from 8.0 for faster vertical adjustments
+const MOUSE_SENSITIVITY = 0.001; // Reduced from 0.002 for smoother mouse control
 const CAMERA_VERTICAL_ANGLE_CHARACTER_RAD = THREE.MathUtils.degToRad(50);
 const CAMERA_VERTICAL_ANGLE_CAR_RAD = THREE.MathUtils.degToRad(55);
 const MAX_DUST_PARTICLES = 200;
 const DUST_PARTICLE_LIFETIME = 1.5; // seconds
 const DUST_EMISSION_RATE_PER_SPEED = 2; // Particles per second per unit of speed
-const BASE_BLOOM_STRENGTH = 0.1; // Lower base bloom
+const BASE_BLOOM_STRENGTH = 0.15; // Slightly increased base bloom
 const MAX_BLOOM_STRENGTH = 0.4;  // Lower max bloom
 const SKYSCRAPER_BASE_SIZE = 8;
 const SKYSCRAPER_MIN_HEIGHT = 20;
 const SKYSCRAPER_MAX_HEIGHT = 60;
+// --- Island Dimensions ---
+const ISLAND_WIDTH = 120; // X-axis
+const ISLAND_LENGTH = 450; // Z-axis
+const WATER_LEVEL_Y = -0.2; // Y position for water plane
+// --- Fence Constants ---
+const FENCE_HEIGHT = 4;
+const FENCE_COLLISION_MARGIN = 0.5; // How far inside the island edge the collision boundary is
+const FENCE_TEXTURE_SECTION_WIDTH = 2.0; // Assumed width in world units of one fence texture repeat
+// --- End Fence Constants ---
+// --- End Island Dimensions ---
 const NUM_NPCS = 5; // How many NPCs to create
 const NPC_WALK_SPEED = 1.0; // Units per second
 const NPC_FRAME_COUNT = 10; // 0000-0009
@@ -96,7 +117,7 @@ const POW_EFFECT_DURATION = 0.5; // seconds
 const AMBIENT_DUST_COUNT = 500; // Number of ambient dust particles
 const AMBIENT_DUST_BOX_SIZE = 50; // How large is the area they spawn/exist in
 const AMBIENT_DUST_SPEED = 0.1;  // How fast they drift
-const SATURATION_MULTIPLIER = 1.3; // How much to multiply saturation by
+const SATURATION_MULTIPLIER = 1.5; // Increased saturation
 const CAR_HIT_IMPULSE_HORIZONTAL = 15.0; // For car hitting NPC
 const CAR_HIT_IMPULSE_VERTICAL = 7.0;   // For car hitting NPC
 const CAR_REBOUND_SPEED = 5.0; // Speed at which car bounces off obstacles
@@ -133,7 +154,7 @@ let car = {
     currentAngleSprite: 0, // The angle used for selecting sprite texture
     sprite: null, // To hold the car's Mesh object
     textures: {}, // { 0: tex, 22.5: tex, ... }
-    baseY: CAR_Y_POS // Store the base Y position
+    baseY: CAR_Y_POS + 0.01// Store the base Y position
 };
 
 // Add state for the second car
@@ -145,8 +166,107 @@ let car2 = {
     currentAngleSprite: 0, // The angle used for selecting sprite texture
     sprite: null, // To hold the car's Mesh object
     textures: {}, // Separate textures object
-    baseY: CAR_Y_POS - 0.1 // Store the base Y position for car 2
+    baseY: CAR_Y_POS - 0.07, // Store the base Y position for car 2
+    id: 'car2' // Add an ID for easier identification
 };
+
+// Add state for car 3
+let car3 = {
+    position: new THREE.Vector3(10, CAR_Y_POS - 0.2, -15), // Unique position
+    velocity: new THREE.Vector3(),
+    forward: new THREE.Vector3(1, 0, 0), // Facing +X
+    angle: Math.PI / 2, 
+    currentAngleSprite: 0,
+    sprite: null,
+    textures: {}, 
+    baseY: CAR_Y_POS + 0.05,
+    id: 'car3'
+};
+
+// Add state for car 4
+let car4 = {
+    position: new THREE.Vector3(-10, CAR_Y_POS - 0.3, -20), // Unique position
+    velocity: new THREE.Vector3(),
+    forward: new THREE.Vector3(-1, 0, 0), // Facing -X
+    angle: -Math.PI / 2,
+    currentAngleSprite: 0,
+    sprite: null,
+    textures: {},
+    baseY: CAR_Y_POS + 0.05,
+    id: 'car4'
+};
+
+// Add state for car 5
+let car5 = {
+    position: new THREE.Vector3(15, CAR_Y_POS, -25), 
+    velocity: new THREE.Vector3(),
+    forward: new THREE.Vector3(0, 0, 1), 
+    angle: 0,
+    currentAngleSprite: 0,
+    sprite: null,
+    textures: {},
+    baseY: CAR_Y_POS, 
+    id: 'car5'
+};
+
+// Add state for car 6
+let car6 = {
+    position: new THREE.Vector3(-15, CAR_Y_POS, -30), 
+    velocity: new THREE.Vector3(),
+    forward: new THREE.Vector3(0, 0, -1), 
+    angle: Math.PI,
+    currentAngleSprite: 0,
+    sprite: null,
+    textures: {},
+    baseY: CAR_Y_POS, 
+    id: 'car6'
+};
+
+// Add state for car 7
+let car7 = {
+    position: new THREE.Vector3(20, CAR_Y_POS, -35), 
+    velocity: new THREE.Vector3(),
+    forward: new THREE.Vector3(1, 0, 0), 
+    angle: Math.PI / 2,
+    currentAngleSprite: 0,
+    sprite: null,
+    textures: {},
+    baseY: CAR_Y_POS, 
+    id: 'car7'
+};
+
+// Add state for car 8
+/*
+let car8 = {
+    position: new THREE.Vector3(-20, CAR_Y_POS, -40), 
+    velocity: new THREE.Vector3(),
+    forward: new THREE.Vector3(-1, 0, 0), 
+    angle: -Math.PI / 2,
+    currentAngleSprite: 0,
+    sprite: null,
+    textures: {},
+    baseY: CAR_Y_POS, 
+    id: 'car8'
+};
+*/
+
+// Add state for car 9
+/*
+let car9 = {
+    position: new THREE.Vector3(0, CAR_Y_POS, -45), // Center start
+    velocity: new THREE.Vector3(),
+    forward: new THREE.Vector3(0, 0, 1), 
+    angle: 0,
+    currentAngleSprite: 0,
+    sprite: null,
+    textures: {},
+    baseY: CAR_Y_POS, 
+    id: 'car9'
+};
+*/
+
+// Array containing all car objects
+let allCars = [car, car2, car3, car4, car5, car6, car7]; // Removed car8, car9
 
 let keyboard = {}; // Keep track of pressed keys
 
@@ -170,12 +290,13 @@ let treePositions = [ // Define positions for trees
 
 let carTextures = {}; // Car Textures (renamed from car.textures)
 let npcs = []; // Array to hold NPC state objects
-let npcTextures = { idle: {}, walk: {} }; // NPC Textures
+let npcTextures = []; // NPC Textures - Will be an array of texture sets
 let grassTexture = null; // Single Grass Texture
 let powTexture = null; // Texture for the POW effect
 let bangTexture = null; // Texture for the BANG effect (car hits)
 let activePowEffects = []; // Array for managing active POW sprites
 let buildingTexture = null; // Texture for skyscrapers
+let fenceTexture = null; // Texture for the fence
 
 // --- Loading State --- (Flags)
 let texturesLoaded = false;
@@ -183,6 +304,14 @@ let treeTexturesLoaded = false;
 let carTexturesLoaded = false;
 let npcTexturesLoaded = false; // Add flag for NPC textures
 let car2TexturesLoaded = false; // Add flag for Car 2 textures
+let car3TexturesLoaded = false; // Add flag for Car 3 textures
+let car4TexturesLoaded = false; // Add flag for Car 4 textures
+let car5TexturesLoaded = false; // Add flag for Car 5 textures
+let car6TexturesLoaded = false; // Add flag for Car 6 textures
+let car7TexturesLoaded = false; // Add flag for Car 7 textures
+// let car8TexturesLoaded = false; // Add flag for Car 8 textures
+// let car9TexturesLoaded = false; // Add flag for Car 9 textures
+let fenceTextureLoaded = false; // Flag for fence texture
 
 // --- Loaders --- 
 let textureLoader = new THREE.TextureLoader();
@@ -206,30 +335,124 @@ let ambientDustGeometry = null;
 let ambientDustMaterial = null;
 let ambientDustData = []; // Array to manage individual ambient particle info
 
-// --- Skyscraper Positions --- 
+// --- Skyscraper Positions (Updated for Island Shape) --- 
 const skyscraperPositions = [
-    // Near start
+    // Near start (closer to center)
     new THREE.Vector3(-15, 0, -10), 
     new THREE.Vector3( 15, 0, -15), 
     new THREE.Vector3(-10, 0, -30), 
     new THREE.Vector3( 20, 0, -25), 
-    new THREE.Vector3(-25, 0, -20), 
-    new THREE.Vector3( 25, 0, -40), 
-    new THREE.Vector3(-30, 0, -5), 
-    // Further out
-    new THREE.Vector3( 35, 0, -60),
-    new THREE.Vector3(-30, 0, -55),
-    new THREE.Vector3( 10, 0, -80),
-    new THREE.Vector3(-15, 0, -90),
-    new THREE.Vector3( 40, 0, -110),
-    new THREE.Vector3(-45, 0, -100),
-    new THREE.Vector3( 30, 0, -130),
-    new THREE.Vector3(-20, 0, -150),
-    new THREE.Vector3( 50, 0, -170),
-    new THREE.Vector3(-55, 0, -160),
+    new THREE.Vector3(-25, 0, -50), // Pulled in Z
+    new THREE.Vector3( 25, 0, -70), // Pulled in Z
+    new THREE.Vector3(-30, 0, -90), // Pulled in Z
+    // Further out (still within island Z range [-225, 225])
+    new THREE.Vector3( 35, 0, -120),
+    new THREE.Vector3(-30, 0, -150),
+    new THREE.Vector3( 10, 0, -180),
+    new THREE.Vector3(-15, 0, -200),
+    new THREE.Vector3( 40, 0, 50),   // Added some positive Z
+    new THREE.Vector3(-45, 0, 80),   // Added some positive Z
+    new THREE.Vector3( 30, 0, 110),  // Added some positive Z
+    new THREE.Vector3(-20, 0, 140),  // Added some positive Z
+    new THREE.Vector3( 50, 0, 170),  // Added some positive Z
+    new THREE.Vector3(-55, 0, 200),  // Added some positive Z (Max X is 60)
 ];
 
-// Moved function definition before init
+// Define NPC types and their UUIDs
+const npcTypes = [
+    // { name: 'npc', idleId: 'ab53bb77-f48c-4055-8e66-d8d56a26cdf4', walkId: 'c8db61a1-fda4-4f19-9db0-acdbcd2179de' }, // Removed original NPC
+    { name: 'npc2', idleId: '7e639539-59f5-4398-ba2f-710100601deb', walkId: 'acb42374-d78f-4f6f-a02f-593bdd76b447' },
+    { name: 'npc3', idleId: '4da41be5-1c5a-4acf-a47a-25720f555ba7', walkId: '34497f69-d1c3-441d-b294-e29cdabdd61a' },
+    { name: 'npc4', idleId: 'fa4ae5aa-b59a-4e90-b024-e1449a99463a', walkId: '9ec7a8f4-da95-4cce-bc50-419f62051045' },
+    { name: 'npc5', idleId: 'e0fc2069-ac73-44f9-b060-3c0b4b029ff9', walkId: '13b3f690-6d10-48ce-85be-001777b89ba8' },
+    { name: 'npc6', idleId: '5ca344b0-c9c4-4c8c-8b65-2b1baac46872', walkId: '358f5802-a42d-49dc-8cf0-7d0dc81ceea3' },
+    { name: 'npc7', idleId: '0067ac0c-3caf-4529-864d-7cb381794901', walkId: 'd0d46b63-a04b-4bec-9cc1-3afec92636e6' },
+    { name: 'npc8', idleId: 'a4db332f-c0c6-4d6e-96b2-3ff3c5d67e3f', walkId: '73c373b7-02ab-4ebe-8caf-5aefc6793411' },
+    { name: 'npc9', idleId: '9b4e1526-6c87-443a-b5de-da8d81d967ba', walkId: '5a31840a-aa37-4bd7-8e63-8e0e9975476d' },
+    { name: 'npc10', idleId: '655fb4dd-8fcd-4ce3-b919-b65ce83a5117', walkId: 'c61931f7-66f6-49ac-8597-7ec1e6441f3a' },
+    { name: 'npc11', idleId: '47bfd6bb-c61f-4321-b33a-907c7e7c32cb', walkId: 'a0499103-90d4-44e5-b76c-9fbf4091a692' },
+    { name: 'npc12', idleId: '5eb8bff8-7ca2-4ab3-ba12-9dd9b6f01cad', walkId: '7f39e4cc-835f-4823-97e6-7ef738481153' },
+    { name: 'npc13', idleId: 'b45baf5c-fb60-41d4-ad72-088e8e3de28d', walkId: '34e77c6f-0897-4e10-a0f1-9c3bb425ebef' },
+    { name: 'npc14', idleId: 'ab53bb77-f48c-4055-8e66-d8d56a26cdf4', walkId: 'c8db61a1-fda4-4f19-9db0-acdbcd2179de' },
+];
+
+// --- CRT Shader Definition ---
+const CRTShader = {
+    uniforms: {
+        'tDiffuse': { value: null },
+        'resolution': { value: new THREE.Vector2(window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio) },
+        'scanlineIntensity': { value: 0.3 },
+        'scanlineCount': { value: window.innerHeight * window.devicePixelRatio * 0.6 },
+        'curvature': { value: 4.0 }, // Reduced from 2.0
+        'vignette': { value: 0.8 },
+        'time': { value: 0.0 },
+        'colorOffset': { value: 0.0 } // Added for chromatic aberration
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform vec2 resolution;
+        uniform float scanlineIntensity;
+        uniform float scanlineCount;
+        uniform float curvature;
+        uniform float vignette;
+        uniform float time;
+        varying vec2 vUv;
+        uniform float colorOffset; // Added
+
+        vec2 curveUV(vec2 uv, float amount) {
+            uv = uv * 2.0 - 1.0;
+            vec2 offset = abs(uv.yx) / amount;
+            uv = uv + uv * offset * offset;
+            uv = uv * 0.5 + 0.5;
+            return uv;
+        }
+
+        void main() {
+            vec2 curvedUv = curveUV(vUv, curvature);
+            vec3 finalColor = vec3(0.0);
+
+            if (curvedUv.x >= 0.0 && curvedUv.x <= 1.0 && curvedUv.y >= 0.0 && curvedUv.y <= 1.0) {
+                // Chromatic Aberration (Color Offset)
+                float offsetAmount = colorOffset * (length(curvedUv - 0.5)); // Increase offset towards edges
+                vec2 uvR = curvedUv + vec2(offsetAmount, 0.0);
+                vec2 uvB = curvedUv - vec2(offsetAmount, 0.0);
+
+                // Sample textures - clamp coordinates to avoid edge artifacts if offset pushes them outside [0,1]
+                finalColor.r = texture2D(tDiffuse, clamp(uvR, 0.0, 1.0)).r;
+                finalColor.g = texture2D(tDiffuse, curvedUv).g; // Green channel from original UV
+                finalColor.b = texture2D(tDiffuse, clamp(uvB, 0.0, 1.0)).b;
+
+                // Scanlines
+                float scanlineEffect = sin(curvedUv.y * scanlineCount) * 0.5 + 0.5;
+                finalColor.rgb *= mix(1.0 - scanlineIntensity, 1.0, scanlineEffect);
+
+                // Vignette
+                float vignetteEffect = length(curvedUv - 0.5);
+                vignetteEffect = smoothstep(0.3, 0.7, vignetteEffect);
+                finalColor.rgb *= mix(1.0, 1.0 - vignette, vignetteEffect);
+
+                // Optional Noise/Flicker
+                // float noise = (fract(sin(dot(curvedUv + time * 0.01, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.05;
+                // finalColor.rgb += noise;
+
+            } else {
+                // Outside curved screen is black
+            }
+
+            gl_FragColor = vec4(finalColor, 1.0);
+        }
+    `
+};
+// --- End CRT Shader Definition ---
+
+// --- Create Skyscrapers function ---
 function createSkyscrapers() {
     const geometryBase = new THREE.BoxGeometry(SKYSCRAPER_BASE_SIZE, 1, SKYSCRAPER_BASE_SIZE); // Height will be scaled
 
@@ -292,7 +515,7 @@ function init() {
     scene.background = skyboxTexture;
 
     // Adjust Fog for darker/grittier feel - Further decrease density
-    scene.fog = new THREE.FogExp2(0x333333, 0.025); // Density reduced from 0.030
+    scene.fog = new THREE.FogExp2(0x333333, 0.020); // Density reduced further from 0.025
 
     // Camera
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); // Adjust camera position for ground plane view
@@ -329,24 +552,31 @@ function init() {
     // colorCorrectionPass.uniforms['addRGB'].value.set( rAdd, gAdd, bAdd ); // Affects brightness offset
     composer.addPass(colorCorrectionPass);
 
+    // Add CRT Pass (after color correction, before output)
+    crtPass = new ShaderPass(CRTShader);
+    crtPass.enabled = isCrtEnabled; // Initially disabled
+    composer.addPass(crtPass);
+
     // Add OutputPass LAST for correct color space and tone mapping handling
     const outputPass = new OutputPass();
     composer.addPass(outputPass);
 
     // Lighting - Increase both ambient and directional
-    const ambientLight = new THREE.AmbientLight(0xaaaaaa, 0.6); // Increased from 0.5
+    const ambientLight = new THREE.AmbientLight(0xaaaaaa, 0.8); // Increased intensity from 0.6
     scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6); // Increased from 0.4
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // Increased intensity from 0.6
     directionalLight.position.set(5, 10, 7.5); 
     scene.add(directionalLight);
 
-    // Ground plane - Restore this
+    // Ground plane - ISLAND
     const groundTexture = textureLoader.load('/textures/ground.webp'); // Load the texture
     groundTexture.wrapS = THREE.RepeatWrapping; // Enable horizontal wrapping
     groundTexture.wrapT = THREE.RepeatWrapping; // Enable vertical wrapping
-    groundTexture.repeat.set(125, 275); // Adjust repeat for new larger size (250x550)
+    // Adjust repeat based on texture scale relative to new island size
+    const groundTextureTileSize = 4; // Assume texture roughly covers 4x4 world units
+    groundTexture.repeat.set(ISLAND_WIDTH / groundTextureTileSize, ISLAND_LENGTH / groundTextureTileSize); 
 
-    const groundGeometry = new THREE.PlaneGeometry(250, 550); // Make ground larger
+    const groundGeometry = new THREE.PlaneGeometry(ISLAND_WIDTH, ISLAND_LENGTH); // Use island dimensions
     // const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x808080, side: THREE.DoubleSide }); // Grey ground
     const groundMaterial = new THREE.MeshStandardMaterial({ 
         map: groundTexture, // Apply the texture map
@@ -354,7 +584,7 @@ function init() {
         roughness: 0.9, // Increase roughness to reduce shine
         metalness: 0.1,  // Reduce metalness
         emissive: 0x222222, // Increase emissive color slightly (lighter grey)
-        emissiveIntensity: 5.0 // Increase intensity further
+        emissiveIntensity: 6.0 // Increased intensity from 5.0
     }); 
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.rotation.x = -Math.PI / 2;
@@ -376,7 +606,7 @@ function init() {
     const roadTexture = textureLoader.load('/textures/road.webp');
     roadTexture.wrapS = THREE.RepeatWrapping; // Repeat along the length
     roadTexture.wrapT = THREE.RepeatWrapping; // Repeat across the width (optional, could clamp)
-    const roadLength = 500; // Make road much longer
+    const roadLength = ISLAND_LENGTH - 10; // Make road slightly shorter than island
     roadTexture.repeat.set(1, roadLength / ROAD_WIDTH); // Use global constant (changed to uppercase)
 
     const roadGeometry = new THREE.PlaneGeometry(ROAD_WIDTH, roadLength); // Use global constant
@@ -389,13 +619,15 @@ function init() {
     });
     const road = new THREE.Mesh(roadGeometry, roadMaterial);
     road.rotation.x = -Math.PI / 2; // Lay it flat on the ground
-    road.position.set(0, 0.01, -roadLength / 2 + 5); // Adjust position for new length
+    // Center the road along the island's length
+    road.position.set(0, 0.01, 0); // Position centered Z, slightly above ground
     scene.add(road);
 
     // --- Crossroads ---
     const crossroadWidth = ROAD_WIDTH; // Use global constant for consistency
-    const crossroadLength = 100; // Make crossroads extend further
-    const crossroadPositionsZ = [-20, -60, -100, -140, -180, -220]; // Add more crossroad positions
+    const crossroadLength = ISLAND_WIDTH; // Make crossroads span the island width
+    // Adjust Z positions to be within the new roadLength/2 bounds
+    const crossroadPositionsZ = [-20, -60, -100, -140, -180, 20, 60, 100, 140, 180]; // Adjusted positions within [-roadLength/2, roadLength/2]
 
     for (const zPos of crossroadPositionsZ) {
         const crossroadTexture = roadTexture.clone(); // Clone texture for independent repetition
@@ -417,13 +649,64 @@ function init() {
         scene.add(crossroad);
     }
 
+    // --- Water Plane ---
+    /* // Remove old basic water plane
+    const waterGeometry = new THREE.PlaneGeometry(1000, 1000); // Large plane for water
+    // Basic blue water material for now
+    const waterMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x0044aa, 
+        transparent: true, 
+        opacity: 0.85, 
+        roughness: 0.2, 
+        metalness: 0.1 
+    });
+    const waterPlane = new THREE.Mesh(waterGeometry, waterMaterial);
+    waterPlane.rotation.x = -Math.PI / 2; // Lay flat
+    waterPlane.position.set(0, WATER_LEVEL_Y, 0); // Position below ground
+    scene.add(waterPlane);
+    */
+    
+    // Realistic Water
+    const waterGeometry = new THREE.PlaneGeometry(10000, 10000); // Make water extensive
+    const water = new Water(
+        waterGeometry,
+        {
+            textureWidth: 512,
+            textureHeight: 512,
+            waterNormals: new THREE.TextureLoader().load('/textures/waternormals.jpg', function (texture) {
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            }),
+            sunDirection: new THREE.Vector3().copy(directionalLight.position).normalize(), // Use scene light direction
+            sunColor: 0xffffff,
+            waterColor: 0x001e0f, // Darker, greenish water
+            distortionScale: 3.7,
+            fog: scene.fog !== undefined,
+            size: 1.0 // Adjust wave size
+        }
+    );
+    water.rotation.x = -Math.PI / 2;
+    water.position.y = WATER_LEVEL_Y; // Set water level
+    scene.add(water);
+    window.water = water; // Make water accessible globally for animation update
+    // --- End Water Plane ---
+
     // Create Skyscrapers (Call remains here)
     createSkyscrapers();
 
-    // Initialize Particle System (Car Dust)
-    createDustParticles();
-    // Initialize Ambient Dust System
-    createAmbientDustParticles();
+    // --- Fence Loading and Creation ---
+    textureLoader.load('/sprites/objects/fence.webp', (texture) => {
+        fenceTexture = texture;
+        fenceTexture.magFilter = THREE.LinearFilter;
+        fenceTexture.minFilter = THREE.LinearFilter;
+        fenceTexture.wrapS = THREE.RepeatWrapping;
+        fenceTexture.wrapT = THREE.ClampToEdgeWrapping; // Don't repeat vertically
+        fenceTextureLoaded = true;
+        console.log("Fence texture loaded!");
+        createFences(); // Create fences once texture is ready
+    }, undefined, (err) => {
+        console.error("Failed to load fence texture:", err);
+    });
+    // --- End Fence Loading ---
 
     // Load POW Texture
     powTexture = textureLoader.load('/sprites/effects/pow.webp');
@@ -453,6 +736,36 @@ function init() {
         console.log("Car 2 textures loaded!");
         car2TexturesLoaded = true;
         createCar2(); // Create car 2 after its textures are loaded
+        // Load car 3 textures next
+        return loadCar3Textures(); 
+    }).then(() => {
+        console.log("Car 3 textures loaded!");
+        car3TexturesLoaded = true;
+        createCar3(); // Create car 3
+        // Load car 4 textures next
+        return loadCar4Textures();
+    }).then(() => {
+        console.log("Car 4 textures loaded!");
+        car4TexturesLoaded = true;
+        createCar4(); // Create car 4
+        // Load car 5 textures next
+        return loadCar5Textures();
+    }).then(() => {
+        console.log("Car 5 textures loaded!");
+        car5TexturesLoaded = true;
+        createCar5();
+        // Load car 6 textures next
+        return loadCar6Textures();
+    }).then(() => {
+        console.log("Car 6 textures loaded!");
+        car6TexturesLoaded = true;
+        createCar6();
+        // Load car 7 textures next
+        return loadCar7Textures();
+    }).then(() => {
+        console.log("Car 7 textures loaded!");
+        car7TexturesLoaded = true;
+        createCar7();
         // Load NPC Textures
         return loadNpcTextures();
     }).then(() => {
@@ -551,7 +864,7 @@ async function loadAllTextures() {
 
 async function loadTreeTextures() {
     const promises = [];
-    const treePrefix = "fda205b8-f0cb-4812-8a38-5b955782afaf"; // Use the correct tree prefix from the screenshot
+    const treePrefix = "61c18be5-31a1-4ee1-8eda-b367fac76a80"; // Updated tree prefix
     const basePath = '/sprites/objects/tree/'; // Path relative to /public
     const framePadded = '0000'; // Inanimate objects use only frame 0
 
@@ -686,55 +999,224 @@ async function loadCar2Textures() {
     await Promise.all(promises);
 }
 
+async function loadCar3Textures() {
+    const promises = [];
+    const carPrefix = CAR3_SPRITE_PREFIX;
+    const basePath = '/sprites/car3/'; 
+    const framePadded = '0000';
+
+    console.log(`Loading car 3 textures with prefix: ${carPrefix} for ${NUM_CAR_ANGLES} angles`);
+
+    for (const angle of CAR_ANGLES) {
+        const angleFloor = Math.floor(angle);
+        const decimalPartTimes10 = (angle - angleFloor) * 10;
+        let angleDecimal;
+        if (Math.abs(decimalPartTimes10 - 2.5) < 0.01) { 
+            angleDecimal = 2; 
+        } else {
+            angleDecimal = Math.round(decimalPartTimes10); 
+        }
+        const angleString = `${angleFloor}_${angleDecimal}`;
+        const fileName = `${carPrefix}_angle_${angleString}_${framePadded}.webp`;
+        const filePath = basePath + fileName;
+
+        const promise = new Promise((resolve, reject) => {
+            textureLoader.load(filePath,
+                (texture) => {
+                    texture.magFilter = THREE.LinearFilter;
+                    texture.minFilter = THREE.LinearFilter;
+                    car3.textures[angle] = texture; // Store in car3's object
+                    resolve(texture);
+                },
+                undefined,
+                (err) => {
+                    console.error(`Failed to load car 3 texture: ${filePath}`, err);
+                    resolve(null); 
+                }
+            );
+        });
+        promises.push(promise);
+    }
+    await Promise.all(promises);
+}
+
+async function loadCar4Textures() {
+    const promises = [];
+    const carPrefix = CAR4_SPRITE_PREFIX;
+    const basePath = '/sprites/car4/';
+    const framePadded = '0000';
+
+    console.log(`Loading car 4 textures with prefix: ${carPrefix} for ${NUM_CAR_ANGLES} angles`);
+
+    for (const angle of CAR_ANGLES) {
+        const angleFloor = Math.floor(angle);
+        const decimalPartTimes10 = (angle - angleFloor) * 10;
+        let angleDecimal;
+        if (Math.abs(decimalPartTimes10 - 2.5) < 0.01) { 
+            angleDecimal = 2; 
+        } else {
+            angleDecimal = Math.round(decimalPartTimes10); 
+        }
+        const angleString = `${angleFloor}_${angleDecimal}`;
+        const fileName = `${carPrefix}_angle_${angleString}_${framePadded}.webp`;
+        const filePath = basePath + fileName;
+
+        const promise = new Promise((resolve, reject) => {
+            textureLoader.load(filePath,
+                (texture) => {
+                    texture.magFilter = THREE.LinearFilter;
+                    texture.minFilter = THREE.LinearFilter;
+                    car4.textures[angle] = texture; // Store in car4's object
+                    resolve(texture);
+                },
+                undefined,
+                (err) => {
+                    console.error(`Failed to load car 4 texture: ${filePath}`, err);
+                    resolve(null);
+                }
+            );
+        });
+        promises.push(promise);
+    }
+    await Promise.all(promises);
+}
+
+async function loadCar5Textures() {
+    const promises = [];
+    const carPrefix = CAR5_SPRITE_PREFIX;
+    const basePath = '/sprites/car5/';
+    const framePadded = '0000';
+    console.log(`Loading car 5 textures with prefix: ${carPrefix} for ${NUM_CAR_ANGLES} angles`);
+    for (const angle of CAR_ANGLES) {
+        const angleFloor = Math.floor(angle);
+        const decimalPartTimes10 = (angle - angleFloor) * 10;
+        let angleDecimal;
+        if (Math.abs(decimalPartTimes10 - 2.5) < 0.01) { angleDecimal = 2; } else { angleDecimal = Math.round(decimalPartTimes10); }
+        const angleString = `${angleFloor}_${angleDecimal}`;
+        const fileName = `${carPrefix}_angle_${angleString}_${framePadded}.webp`;
+        const filePath = basePath + fileName;
+        const promise = new Promise((resolve) => {
+            textureLoader.load(filePath, (texture) => {
+                texture.magFilter = THREE.LinearFilter; texture.minFilter = THREE.LinearFilter;
+                car5.textures[angle] = texture;
+                resolve(texture);
+            }, undefined, (err) => { console.error(`Failed to load car 5 texture: ${filePath}`, err); resolve(null); });
+        });
+        promises.push(promise);
+    }
+    await Promise.all(promises);
+}
+
+async function loadCar6Textures() {
+    const promises = [];
+    const carPrefix = CAR6_SPRITE_PREFIX;
+    const basePath = '/sprites/car6/';
+    const framePadded = '0000';
+    console.log(`Loading car 6 textures with prefix: ${carPrefix} for ${NUM_CAR_ANGLES} angles`);
+    for (const angle of CAR_ANGLES) {
+        const angleFloor = Math.floor(angle);
+        const decimalPartTimes10 = (angle - angleFloor) * 10;
+        let angleDecimal;
+        if (Math.abs(decimalPartTimes10 - 2.5) < 0.01) { angleDecimal = 2; } else { angleDecimal = Math.round(decimalPartTimes10); }
+        const angleString = `${angleFloor}_${angleDecimal}`;
+        const fileName = `${carPrefix}_angle_${angleString}_${framePadded}.webp`;
+        const filePath = basePath + fileName;
+        const promise = new Promise((resolve) => {
+            textureLoader.load(filePath, (texture) => {
+                texture.magFilter = THREE.LinearFilter; texture.minFilter = THREE.LinearFilter;
+                car6.textures[angle] = texture;
+                resolve(texture);
+            }, undefined, (err) => { console.error(`Failed to load car 6 texture: ${filePath}`, err); resolve(null); });
+        });
+        promises.push(promise);
+    }
+    await Promise.all(promises);
+}
+
+async function loadCar7Textures() {
+    const promises = [];
+    const carPrefix = CAR7_SPRITE_PREFIX;
+    const basePath = '/sprites/car7/';
+    const framePadded = '0000';
+    console.log(`Loading car 7 textures with prefix: ${carPrefix} for ${NUM_CAR_ANGLES} angles`);
+    for (const angle of CAR_ANGLES) {
+        const angleFloor = Math.floor(angle);
+        const decimalPartTimes10 = (angle - angleFloor) * 10;
+        let angleDecimal;
+        if (Math.abs(decimalPartTimes10 - 2.5) < 0.01) { angleDecimal = 2; } else { angleDecimal = Math.round(decimalPartTimes10); }
+        const angleString = `${angleFloor}_${angleDecimal}`;
+        const fileName = `${carPrefix}_angle_${angleString}_${framePadded}.webp`;
+        const filePath = basePath + fileName;
+        const promise = new Promise((resolve) => {
+            textureLoader.load(filePath, (texture) => {
+                texture.magFilter = THREE.LinearFilter; texture.minFilter = THREE.LinearFilter;
+                car7.textures[angle] = texture;
+                resolve(texture);
+            }, undefined, (err) => { console.error(`Failed to load car 7 texture: ${filePath}`, err); resolve(null); });
+        });
+        promises.push(promise);
+    }
+    await Promise.all(promises);
+}
+
 async function loadNpcTextures() {
     const promises = [];
-    const npcStates = {
-        idle: "ab53bb77-f48c-4055-8e66-d8d56a26cdf4",
-        walk: "c8db61a1-fda4-4f19-9db0-acdbcd2179de"
-    };
-    const basePath = '/sprites/npc/';
-    const frameCount = NPC_FRAME_COUNT; 
+    const frameCount = NPC_FRAME_COUNT;
     const angles = NPC_ANGLES;
 
-    console.log("Loading NPC textures...");
+    console.log("Loading NPC textures for all types...");
 
-    for (const [state, prefix] of Object.entries(npcStates)) {
-        npcTextures[state] = {};
-        const statePath = `${basePath}${state}/`; // e.g., /sprites/npc/walk/
+    for (const npcType of npcTypes) {
+        const npcTypeIndex = npcTextures.length; // Index where this type's textures will be stored
+        npcTextures.push({ idle: {}, walk: {} }); // Initialize texture object for this type
 
-        for (const angle of angles) {
-            npcTextures[state][angle] = [];
-            // NPC angles are always _0
-            const angleDirName = `${angle}_0`; 
-            const anglePath = `${statePath}angle_${angleDirName}/`;
+        const npcStates = {
+            idle: npcType.idleId,
+            walk: npcType.walkId
+        };
+        const basePath = `/sprites/${npcType.name}/`;
 
-            for (let frame = 0; frame < frameCount; frame++) {
-                const framePadded = String(frame).padStart(4, '0');
-                const fileName = `${prefix}_angle_${angleDirName}_${framePadded}.webp`;
-                const filePath = anglePath + fileName;
+        console.log(`Loading textures for ${npcType.name}...`);
 
-                const promise = new Promise((resolve, reject) => {
-                    textureLoader.load(filePath,
-                        (texture) => {
-                            texture.magFilter = THREE.LinearFilter;
-                            texture.minFilter = THREE.LinearFilter;
-                            npcTextures[state][angle][frame] = texture;
-                            resolve(texture);
-                        },
-                        undefined,
-                        (err) => {
-                            console.warn(`Failed to load NPC texture: ${filePath}`, err);
-                            // Don't reject, just resolve null so loading continues
-                            resolve(null);
-                        }
-                    );
-                });
-                promises.push(promise);
+        for (const [state, prefix] of Object.entries(npcStates)) {
+            npcTextures[npcTypeIndex][state] = {};
+            const statePath = `${basePath}${state}/`; // e.g., /sprites/npc2/walk/
+
+            for (const angle of angles) {
+                npcTextures[npcTypeIndex][state][angle] = [];
+                // NPC angles are always _0
+                const angleDirName = `${angle}_0`;
+                const anglePath = `${statePath}angle_${angleDirName}/`;
+
+                for (let frame = 0; frame < frameCount; frame++) {
+                    const framePadded = String(frame).padStart(4, '0');
+                    const fileName = `${prefix}_angle_${angleDirName}_${framePadded}.webp`;
+                    const filePath = anglePath + fileName;
+
+                    const promise = new Promise((resolve, reject) => {
+                        textureLoader.load(filePath,
+                            (texture) => {
+                                texture.magFilter = THREE.LinearFilter; // Use Linear for smoother look when scaled
+                                texture.minFilter = THREE.LinearFilter; // Use Linear for smoother look when scaled
+                                npcTextures[npcTypeIndex][state][angle][frame] = texture;
+                                resolve(texture);
+                            },
+                            undefined,
+                            (err) => {
+                                console.warn(`Failed to load NPC texture: ${filePath}`, err);
+                                // Don't reject, just resolve null so loading continues
+                                resolve(null);
+                            }
+                        );
+                    });
+                    promises.push(promise);
+                }
             }
         }
     }
     try {
         await Promise.all(promises);
+        console.log("Finished loading all NPC textures.");
     } catch (error) {
         console.error("Error occurred during NPC texture loading, but continuing...");
     }
@@ -778,7 +1260,7 @@ function createTrees() {
             transparent: true,
             alphaTest: 0.5, 
             side: THREE.DoubleSide,
-            color: 0xaaaaaa // Add color tint to darken
+            // color: 0xaaaaaa // Remove color tint to darken
         });
         const geometry = new THREE.PlaneGeometry(TREE_SCALE, TREE_SCALE);
         const treeSprite = new THREE.Mesh(geometry, material);
@@ -837,7 +1319,7 @@ function createCar() {
         transparent: true,
         alphaTest: 0.5,
         side: THREE.DoubleSide,
-        color: 0xaaaaaa // Add color tint to darken
+        // color: 0xaaaaaa // Remove color tint to darken
     });
     const geometry = new THREE.PlaneGeometry(CAR_SCALE, CAR_SCALE * 0.6); // Adjust aspect ratio if needed
     car.sprite = new THREE.Mesh(geometry, material);
@@ -869,130 +1351,115 @@ function createCar2() {
     console.log(`Created car 2 at: ${car2.position.x}, ${car2.position.z}`);
 }
 
-function createDustParticles() {
-    dustParticleGeometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(MAX_DUST_PARTICLES * 3);
-    const colors = new Float32Array(MAX_DUST_PARTICLES * 3); // To control alpha via color
-
-    // Initialize particle data array
-    for (let i = 0; i < MAX_DUST_PARTICLES; i++) {
-        dustParticleData.push({ 
-            position: new THREE.Vector3(), 
-            velocity: new THREE.Vector3(), 
-            lifetime: 0, // 0 means inactive
-            alpha: 0
-        });
-        // Initialize buffer attributes to 0
-        positions[i * 3] = 0;
-        positions[i * 3 + 1] = 0;
-        positions[i * 3 + 2] = 0;
-        colors[i * 3] = 1; // R
-        colors[i * 3 + 1] = 1; // G
-        colors[i * 3 + 2] = 1; // B (alpha is handled by transparency + material opacity? Let's try vertex color alpha via transparency)
+// --- Create Car 3 ---
+function createCar3() {
+    const initialCarTexture = car3.textures[0]; 
+    if (!initialCarTexture) {
+        console.warn("Initial car 3 texture (angle 0) not loaded, cannot create car 3.");
+        return;
     }
-
-    dustParticleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    dustParticleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-    dustParticleMaterial = new THREE.PointsMaterial({
-        size: 0.1,
-        // map: dustTexture, // Optional: Use a texture
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.7, // Initial overall opacity
-        blending: THREE.AdditiveBlending, // Make them glow slightly
-        depthWrite: false // Prevent particles hiding each other oddly
+    const material = new THREE.MeshBasicMaterial({
+        map: initialCarTexture.clone(),
+        transparent: true, alphaTest: 0.5, side: THREE.DoubleSide,
+        // color: 0xccaa88 // Example tint
     });
-
-    dustParticles = new THREE.Points(dustParticleGeometry, dustParticleMaterial);
-    scene.add(dustParticles);
-    console.log("Dust particle system created.");
+    const geometry = new THREE.PlaneGeometry(CAR_SCALE, CAR_SCALE * 0.6); 
+    car3.sprite = new THREE.Mesh(geometry, material);
+    car3.sprite.position.copy(car3.position);
+    scene.add(car3.sprite);
+    console.log(`Created car 3 at: ${car3.position.x}, ${car3.position.z}`);
 }
 
-// --- Ambient Dust Functions ---
-function createAmbientDustParticles() {
-    ambientDustGeometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(AMBIENT_DUST_COUNT * 3);
-
-    // Initialize particle data array
-    for (let i = 0; i < AMBIENT_DUST_COUNT; i++) {
-        const x = (Math.random() - 0.5) * AMBIENT_DUST_BOX_SIZE;
-        const y = Math.random() * (AMBIENT_DUST_BOX_SIZE * 0.5); // Spawn lower half mostly
-        const z = (Math.random() - 0.5) * AMBIENT_DUST_BOX_SIZE;
-        
-        ambientDustData.push({ 
-            position: new THREE.Vector3(x, y, z), 
-            velocity: new THREE.Vector3(
-                (Math.random() - 0.5) * AMBIENT_DUST_SPEED * 0.1, // Very slow drift
-                (Math.random() - 0.5) * AMBIENT_DUST_SPEED * 0.1, 
-                (Math.random() - 0.5) * AMBIENT_DUST_SPEED * 0.1
-            ),
-            baseY: y // Store initial Y to maybe reset later or oscillate
-        });
-        // Initialize buffer attributes
-        positions[i * 3] = x;
-        positions[i * 3 + 1] = y;
-        positions[i * 3 + 2] = z;
+// --- Create Car 4 ---
+function createCar4() {
+    const initialCarTexture = car4.textures[0]; 
+    if (!initialCarTexture) {
+        console.warn("Initial car 4 texture (angle 0) not loaded, cannot create car 4.");
+        return;
     }
-
-    ambientDustGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-    ambientDustMaterial = new THREE.PointsMaterial({
-        size: 2, // Size in pixels when sizeAttenuation is false
-        color: 0xaaaaaa, // Dim grey/brownish color
-        transparent: true,
-        opacity: 0.4, // Make them subtle
-        blending: THREE.NormalBlending, // Not additive, just normal blend
-        depthWrite: false, // Prevent particles hiding each other oddly
-        sizeAttenuation: false // Prevent billboarding/scaling with distance
+    const material = new THREE.MeshBasicMaterial({
+        map: initialCarTexture.clone(),
+        transparent: true, alphaTest: 0.5, side: THREE.DoubleSide,
+        // color: 0x88ccaa // Example tint
     });
-
-    ambientDustParticles = new THREE.Points(ambientDustGeometry, ambientDustMaterial);
-    // Add directly to the scene now, its position won't be updated frame-by-frame
-    scene.add(ambientDustParticles); 
-    console.log("Ambient dust particle system created.");
+    const geometry = new THREE.PlaneGeometry(CAR_SCALE, CAR_SCALE * 0.6); 
+    car4.sprite = new THREE.Mesh(geometry, material);
+    car4.sprite.position.copy(car4.position);
+    scene.add(car4.sprite);
+    console.log(`Created car 4 at: ${car4.position.x}, ${car4.position.z}`);
 }
 
-function updateAmbientDustParticles(deltaTime) {
-    if (!ambientDustParticles) return;
-
-    // Remove the lines that centered the particle system on the camera
-    // ambientDustParticles.position.x = camera.position.x;
-    // ambientDustParticles.position.z = camera.position.z;
-    // Remove the check to add to scene, as it's added once in create...
-    // if (!ambientDustParticles.parent) {
-    //     scene.add(ambientDustParticles);
-    // }
-
-    const positions = ambientDustGeometry.attributes.position.array;
-    const halfBox = AMBIENT_DUST_BOX_SIZE / 2;
-    const boxHeight = AMBIENT_DUST_BOX_SIZE * 0.5; // Max height relative to particle system center
-
-    for (let i = 0; i < AMBIENT_DUST_COUNT; i++) {
-        const particle = ambientDustData[i];
-        
-        // Update position based on velocity
-        particle.position.add(particle.velocity.clone().multiplyScalar(deltaTime));
-
-        // Simple wrapping logic within the box centered around the particle system's position
-        if (particle.position.x > halfBox) particle.position.x -= AMBIENT_DUST_BOX_SIZE;
-        if (particle.position.x < -halfBox) particle.position.x += AMBIENT_DUST_BOX_SIZE;
-        if (particle.position.y > boxHeight) particle.position.y -= boxHeight; // Wrap Y within its range
-        if (particle.position.y < 0) particle.position.y += boxHeight; // Wrap Y 
-        if (particle.position.z > halfBox) particle.position.z -= AMBIENT_DUST_BOX_SIZE;
-        if (particle.position.z < -halfBox) particle.position.z += AMBIENT_DUST_BOX_SIZE;
-
-        // Update buffers
-        positions[i * 3] = particle.position.x;
-        positions[i * 3 + 1] = particle.position.y;
-        positions[i * 3 + 2] = particle.position.z;
-    }
-
-    ambientDustGeometry.attributes.position.needsUpdate = true;
+// --- Create Car 5 ---
+function createCar5() {
+    const initialCarTexture = car5.textures[0]; 
+    if (!initialCarTexture) { console.warn("Initial car 5 texture not loaded."); return; }
+    const material = new THREE.MeshBasicMaterial({ map: initialCarTexture.clone(), transparent: true, alphaTest: 0.5, side: THREE.DoubleSide });
+    const geometry = new THREE.PlaneGeometry(CAR_SCALE, CAR_SCALE * 0.6); 
+    car5.sprite = new THREE.Mesh(geometry, material);
+    car5.sprite.position.copy(car5.position);
+    scene.add(car5.sprite);
+    console.log(`Created car 5 at: ${car5.position.x}, ${car5.position.z}`);
 }
+
+// --- Create Car 6 ---
+function createCar6() {
+    const initialCarTexture = car6.textures[0]; 
+    if (!initialCarTexture) { console.warn("Initial car 6 texture not loaded."); return; }
+    const material = new THREE.MeshBasicMaterial({ map: initialCarTexture.clone(), transparent: true, alphaTest: 0.5, side: THREE.DoubleSide });
+    const geometry = new THREE.PlaneGeometry(CAR_SCALE, CAR_SCALE * 0.6); 
+    car6.sprite = new THREE.Mesh(geometry, material);
+    car6.sprite.position.copy(car6.position);
+    scene.add(car6.sprite);
+    console.log(`Created car 6 at: ${car6.position.x}, ${car6.position.z}`);
+}
+
+// --- Create Car 7 ---
+function createCar7() {
+    const initialCarTexture = car7.textures[0]; 
+    if (!initialCarTexture) { console.warn("Initial car 7 texture not loaded."); return; }
+    const material = new THREE.MeshBasicMaterial({ map: initialCarTexture.clone(), transparent: true, alphaTest: 0.5, side: THREE.DoubleSide });
+    const geometry = new THREE.PlaneGeometry(CAR_SCALE, CAR_SCALE * 0.6); 
+    car7.sprite = new THREE.Mesh(geometry, material);
+    car7.sprite.position.copy(car7.position);
+    scene.add(car7.sprite);
+    console.log(`Created car 7 at: ${car7.position.x}, ${car7.position.z}`);
+}
+
+// --- Create Car 8 ---
+/*
+let car8 = {
+    position: new THREE.Vector3(-20, CAR_Y_POS, -40), 
+    velocity: new THREE.Vector3(),
+    forward: new THREE.Vector3(-1, 0, 0), 
+    angle: -Math.PI / 2,
+    currentAngleSprite: 0,
+    sprite: null,
+    textures: {},
+    baseY: CAR_Y_POS, 
+    id: 'car8'
+};
+*/
+
+// Add state for car 9
+/*
+let car9 = {
+    position: new THREE.Vector3(0, CAR_Y_POS, -45), // Center start
+    velocity: new THREE.Vector3(),
+    forward: new THREE.Vector3(0, 0, 1), 
+    angle: 0,
+    currentAngleSprite: 0,
+    sprite: null,
+    textures: {},
+    baseY: CAR_Y_POS, 
+    id: 'car9'
+};
+*/
 
 function createNpcs() {
-    if (!npcTexturesLoaded) return;
+    if (!npcTexturesLoaded || npcTextures.length === 0) {
+        console.warn("NPC textures not loaded or empty, cannot create NPCs.");
+        return;
+    }
 
     const npcScale = SPRITE_SCALE * 1.0; // Make NPCs same size as player
     const npcYPos = npcScale / 2 - 0.075; // Same ground logic as player
@@ -1001,25 +1468,31 @@ function createNpcs() {
         const startX = (Math.random() - 0.5) * 40; // Spread them out initially
         const startZ = -5 - Math.random() * 40;
         const startPos = new THREE.Vector3(startX, npcYPos, startZ);
-        
+
         // Ensure they don't start on road
         if (Math.abs(startPos.x) < ROAD_WIDTH / 2 + 1) startPos.x += Math.sign(startPos.x || 1) * (ROAD_WIDTH / 2 + 2);
 
+        // Randomly assign an NPC type
+        const npcTypeIndex = Math.floor(Math.random() * npcTextures.length);
+        const assignedNpcTextures = npcTextures[npcTypeIndex];
+
         const initialState = Math.random() < 0.5 ? 'idle' : 'walk';
         const initialAngle = NPC_ANGLES[Math.floor(Math.random() * NPC_ANGLES.length)];
-        const initialTexture = npcTextures[initialState]?.[initialAngle]?.[0];
-        
+        const initialTexture = assignedNpcTextures[initialState]?.[initialAngle]?.[0];
+
         if (!initialTexture) {
-            console.warn(`Could not get initial texture for NPC ${i}, state: ${initialState}, angle: ${initialAngle}. Skipping.`);
+            console.warn(`Could not get initial texture for NPC ${i} (type ${npcTypeIndex}), state: ${initialState}, angle: ${initialAngle}. Skipping.`);
             continue;
         }
 
         const material = new THREE.MeshBasicMaterial({
-            map: initialTexture, 
+            map: initialTexture,
             transparent: true,
             alphaTest: 0.5,
             side: THREE.DoubleSide,
-            color: 0xbbbbbb // Slightly different tint for NPCs
+            // Give different NPC types slightly different base tints
+            color: new THREE.Color().setHSL(Math.random() * 0.1 + 0.0, 0.0, 0.7 + Math.random() * 0.2) // subtle grey variation
+            // color: 0xbbbbbb // Slightly different tint for NPCs
         });
         const geometry = new THREE.PlaneGeometry(npcScale, npcScale);
         const sprite = new THREE.Mesh(geometry, material);
@@ -1028,6 +1501,7 @@ function createNpcs() {
 
         npcs.push({
             id: i,
+            npcTypeIndex: npcTypeIndex, // Store which texture set this NPC uses
             position: startPos,
             velocity: new THREE.Vector3(),
             forward: new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0,1,0), initialAngle * Math.PI / 180),
@@ -1111,6 +1585,17 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight); // Also resize composer
+
+    // Update CRT shader resolution
+    if (crtPass) {
+        crtPass.uniforms.resolution.value.set(
+            window.innerWidth * window.devicePixelRatio,
+            window.innerHeight * window.devicePixelRatio
+        );
+        // Update scanline count based on new height
+        crtPass.uniforms.scanlineCount.value = window.innerHeight * window.devicePixelRatio * 0.6;
+    }
 }
 
 function onKeyDown(event) {
@@ -1131,36 +1616,33 @@ function onKeyDown(event) {
     // Handle Enter/Exit Car (Takes priority over starting a punch)
     if (event.code === 'KeyE') {
         if (playerControlMode === 'character' && !character.isPunching) {
-            let enteredCar = null;
-            // Check distance to car 1
-            const distSqCar1 = character.position.distanceToSquared(car.position);
-            if (distSqCar1 < INTERACTION_DISTANCE * INTERACTION_DISTANCE) {
-                enteredCar = car;
-                console.log("Near car 1");
-            }
-            // Check distance to car 2 (only if not already entering car 1)
-            if (!enteredCar) {
-                const distSqCar2 = character.position.distanceToSquared(car2.position);
-                if (distSqCar2 < INTERACTION_DISTANCE * INTERACTION_DISTANCE) {
-                    enteredCar = car2;
-                    console.log("Near car 2");
+            let closestCar = null;
+            let minDistSq = INTERACTION_DISTANCE * INTERACTION_DISTANCE;
+
+            // Iterate through all cars to find the closest one within range
+            for (const targetCar of allCars) {
+                if (!targetCar.sprite) continue; // Skip if sprite doesn't exist
+                const distSq = character.position.distanceToSquared(targetCar.position);
+                if (distSq < minDistSq) {
+                    minDistSq = distSq;
+                    closestCar = targetCar;
                 }
             }
 
             // If close to a car, enter it
-            if (enteredCar) {
+            if (closestCar) {
                 playerControlMode = 'car';
-                currentDrivingCar = enteredCar; // Set the currently driven car
+                currentDrivingCar = closestCar; // Set the currently driven car
                 characterSprite.visible = false;
-                // Optional: Reset car state (applies to the entered car)
+                // Optional: Reset car state
                 currentDrivingCar.velocity.set(0, 0, 0);
                 
                 // Snap camera behind the entered car
                 cameraHorizontalAngle = currentDrivingCar.angle + Math.PI; 
                 targetCameraVerticalAngle = CAMERA_VERTICAL_ANGLE_CAR_RAD;
-                forceCameraUpdate(); // Force immediate camera update based on the new target
+                forceCameraUpdate(); // Force immediate camera update
 
-                console.log("Entered car", currentDrivingCar === car ? 1 : 2);
+                console.log(`Entered ${currentDrivingCar.id}`); // Log which car was entered
             }
         } else if (playerControlMode === 'car' && currentDrivingCar) { // Check if driving a car
             playerControlMode = 'character';
@@ -1180,6 +1662,33 @@ function onKeyDown(event) {
             console.log("Exited car");
         }
     }
+
+    // --- CRT Toggle --- (Key P)
+    if (event.code === 'KeyP') {
+        isCrtEnabled = !isCrtEnabled;
+        if (crtPass) {
+            crtPass.enabled = isCrtEnabled;
+            console.log("CRT Effect:", isCrtEnabled ? "ON" : "OFF");
+            // Apply current preset when turning ON
+            if (isCrtEnabled) {
+                applyCrtFilterPreset(); 
+            }
+        }
+    }
+    // --- End CRT Toggle ---
+
+    // --- CRT Filter Cycle --- (Key L)
+    if (event.code === 'KeyL' && isCrtEnabled) {
+        currentCrtFilterIndex = (currentCrtFilterIndex + 1) % crtFilterPresets.length;
+        applyCrtFilterPreset();
+    }
+    // --- End CRT Filter Cycle ---
+
+    // --- Fullscreen Toggle --- (Key O)
+    if (event.code === 'KeyO') {
+        toggleFullscreen();
+    }
+    // --- End Fullscreen Toggle ---
 }
 
 function onKeyUp(event) {
@@ -1278,15 +1787,31 @@ function updateCharacter(deltaTime) {
     // 4. Collision Check (Always check potential position)
     const potentialPosition = character.position.clone().add(character.velocity.clone().multiplyScalar(deltaTime));
     let collisionDetected = false;
+    
+    // --- Fence Collision (Island Boundary Check) ---
+    const fenceBounds = {
+        minX: -ISLAND_WIDTH / 2 + FENCE_COLLISION_MARGIN,
+        maxX: ISLAND_WIDTH / 2 - FENCE_COLLISION_MARGIN,
+        minZ: -ISLAND_LENGTH / 2 + FENCE_COLLISION_MARGIN,
+        maxZ: ISLAND_LENGTH / 2 - FENCE_COLLISION_MARGIN
+    };
+    if (potentialPosition.x < fenceBounds.minX || potentialPosition.x > fenceBounds.maxX ||
+        potentialPosition.z < fenceBounds.minZ || potentialPosition.z > fenceBounds.maxZ) {
+        collisionDetected = true;
+    }
+    // --- End Fence Collision ---
+
     // Tree collision check
-    for (const treePos of treePositions) {
-        const dxTree = potentialPosition.x - treePos.x;
-        const dzTree = potentialPosition.z - treePos.z;
-        const distSqTree = dxTree * dxTree + dzTree * dzTree;
-        const radiiSumTree = CHARACTER_COLLISION_RADIUS + TREE_COLLISION_RADIUS;
-        if (distSqTree < radiiSumTree * radiiSumTree) {
-            collisionDetected = true;
-            break; 
+    if (!collisionDetected) { // Only check if not already collided with fence
+        for (const treePos of treePositions) {
+            const dxTree = potentialPosition.x - treePos.x;
+            const dzTree = potentialPosition.z - treePos.z;
+            const distSqTree = dxTree * dxTree + dzTree * dzTree;
+            const radiiSumTree = CHARACTER_COLLISION_RADIUS + TREE_COLLISION_RADIUS;
+            if (distSqTree < radiiSumTree * radiiSumTree) {
+                collisionDetected = true;
+                break; 
+            }
         }
     }
 
@@ -1308,6 +1833,26 @@ function updateCharacter(deltaTime) {
         const distSqCar2 = dxCar2 * dxCar2 + dzCar2 * dzCar2;
         const radiiSumCar2 = CHARACTER_COLLISION_RADIUS + CAR_COLLISION_RADIUS; // Assume same radius
         if (distSqCar2 < radiiSumCar2 * radiiSumCar2) {
+            collisionDetected = true;
+        }
+    }
+    // Add collision check for car 3
+    if (!collisionDetected && car3.sprite) { 
+        const dxCar3 = potentialPosition.x - car3.position.x;
+        const dzCar3 = potentialPosition.z - car3.position.z;
+        const distSqCar3 = dxCar3 * dxCar3 + dzCar3 * dzCar3;
+        const radiiSumCar3 = CHARACTER_COLLISION_RADIUS + CAR_COLLISION_RADIUS;
+        if (distSqCar3 < radiiSumCar3 * radiiSumCar3) {
+            collisionDetected = true;
+        }
+    }
+    // Add collision check for car 4
+    if (!collisionDetected && car4.sprite) { 
+        const dxCar4 = potentialPosition.x - car4.position.x;
+        const dzCar4 = potentialPosition.z - car4.position.z;
+        const distSqCar4 = dxCar4 * dxCar4 + dzCar4 * dzCar4;
+        const radiiSumCar4 = CHARACTER_COLLISION_RADIUS + CAR_COLLISION_RADIUS;
+        if (distSqCar4 < radiiSumCar4 * radiiSumCar4) {
             collisionDetected = true;
         }
     }
@@ -1550,24 +2095,32 @@ function updateCar(drivingCar, deltaTime) { // Accept the car object being drive
             break; 
         }
     }
-    // Collision check vs the OTHER car
-    const otherCar = (drivingCar === car) ? car2 : car;
-    if (!collisionDetected && otherCar.sprite) {
-        const dx = potentialPosition.x - otherCar.position.x;
-        const dz = potentialPosition.z - otherCar.position.z;
-        const distSqXZ = dx * dx + dz * dz;
-        const radiiSum = CAR_COLLISION_RADIUS + CAR_COLLISION_RADIUS; // Car vs Car
-        if (distSqXZ < radiiSum * radiiSum) {
-             // Calculate rebound vector
-             const reboundDir = drivingCar.position.clone().sub(otherCar.position).normalize();
-             reboundDir.y = 0; // Keep rebound horizontal
-             drivingCar.velocity.copy(reboundDir).multiplyScalar(CAR_REBOUND_SPEED); 
-             // Maybe apply some force to the other car too?
-             // const impulseDir = drivingCar.position.clone().sub(otherCar.position).normalize();
-             // otherCar.velocity.add(impulseDir.multiplyScalar(-CAR_REBOUND_SPEED * 0.5)); // Push other car slightly less
-             collisionDetected = true;
+    // --- Refactored Car-vs-Car Collision Check ---
+    for (const otherCar of allCars) {
+        // Skip checking against self or cars without sprites
+        if (otherCar === drivingCar || !otherCar.sprite) continue; 
+
+        if (!collisionDetected) { // Check only if no collision detected yet in this frame
+            const dx = potentialPosition.x - otherCar.position.x;
+            const dz = potentialPosition.z - otherCar.position.z;
+            const distSqXZ = dx * dx + dz * dz;
+            const radiiSum = CAR_COLLISION_RADIUS + CAR_COLLISION_RADIUS; // Car vs Car
+            if (distSqXZ < radiiSum * radiiSum) {
+                 // Calculate rebound vector
+                 const reboundDir = drivingCar.position.clone().sub(otherCar.position).normalize();
+                 reboundDir.y = 0; // Keep rebound horizontal
+                 drivingCar.velocity.copy(reboundDir).multiplyScalar(CAR_REBOUND_SPEED); 
+                 // Optionally push the other car slightly
+                 const impulseDir = drivingCar.position.clone().sub(otherCar.position).normalize();
+                 otherCar.velocity.add(impulseDir.multiplyScalar(-CAR_REBOUND_SPEED * 0.5)); // Push other car slightly less
+                 collisionDetected = true;
+                 console.log(`Driving car ${drivingCar.id} collided with ${otherCar.id}`);
+                 break; // Stop checking after the first car collision this frame
+            }
         }
     }
+    // --- End Refactored Check ---
+
     // Collision check vs Buildings
     let buildingCollisionPoint = null; 
     if (!collisionDetected) { // Only check if no other collision detected yet
@@ -1650,6 +2203,50 @@ function updateCarVisuals(carObj, deltaTime) {
     // Correct the lookAt target to use camera's Z position
     const lookAtTarget = new THREE.Vector3(camera.position.x, carObj.sprite.position.y, camera.position.z); 
     carObj.sprite.lookAt(lookAtTarget);
+
+    // --- Potential Position and Fence Collision Check ---
+    const potentialPosition = carObj.position.clone().add(carObj.velocity.clone().multiplyScalar(deltaTime));
+    let collisionDetected = false;
+    const fenceBounds = {
+        minX: -ISLAND_WIDTH / 2 + FENCE_COLLISION_MARGIN,
+        maxX: ISLAND_WIDTH / 2 - FENCE_COLLISION_MARGIN,
+        minZ: -ISLAND_LENGTH / 2 + FENCE_COLLISION_MARGIN,
+        maxZ: ISLAND_LENGTH / 2 - FENCE_COLLISION_MARGIN
+    };
+    if (potentialPosition.x < fenceBounds.minX || potentialPosition.x > fenceBounds.maxX ||
+        potentialPosition.z < fenceBounds.minZ || potentialPosition.z > fenceBounds.maxZ) {
+        collisionDetected = true;
+        // Implement proper rebound off fence
+        if (potentialPosition.x < fenceBounds.minX) {
+            carObj.velocity.x = CAR_REBOUND_SPEED; // Bounce right
+            carObj.velocity.z *= 0.5; // Dampen other axis slightly
+        } else if (potentialPosition.x > fenceBounds.maxX) {
+            carObj.velocity.x = -CAR_REBOUND_SPEED; // Bounce left
+            carObj.velocity.z *= 0.5;
+        }
+        // Separate check for Z to handle corners better (apply both if needed)
+        if (potentialPosition.z < fenceBounds.minZ) {
+            carObj.velocity.z = CAR_REBOUND_SPEED; // Bounce forward (+Z)
+            // Only dampen X if it wasn't just set by X collision
+            if (potentialPosition.x >= fenceBounds.minX && potentialPosition.x <= fenceBounds.maxX) {
+                carObj.velocity.x *= 0.5;
+            }
+        } else if (potentialPosition.z > fenceBounds.maxZ) {
+            carObj.velocity.z = -CAR_REBOUND_SPEED; // Bounce backward (-Z)
+            // Only dampen X if it wasn't just set by X collision
+            if (potentialPosition.x >= fenceBounds.minX && potentialPosition.x <= fenceBounds.maxX) {
+                carObj.velocity.x *= 0.5;
+            }
+        }
+    }
+    // --- End Fence Collision Check ---
+
+    // --- Update Position based on Velocity --- (Only if no collision)
+    // Collision detection for non-driven cars isn't fully implemented here (e.g., vs trees/buildings)
+    // but fence collision IS handled above.
+    if (!collisionDetected) {
+        carObj.position.add(carObj.velocity.clone().multiplyScalar(deltaTime));
+    }
 }
 
 // Force camera update (used for snapping)
@@ -1691,67 +2288,67 @@ function updateCamera(deltaTime) {
     let currentTargetPos;
     let isDriving = false;
     let offsetToUse = CAMERA_OFFSET; // Default to character offset
-    if (playerControlMode === 'car' && currentDrivingCar) { // Use currentDrivingCar
+    if (playerControlMode === 'car' && currentDrivingCar) {
         currentTargetPos = currentDrivingCar.position.clone().add(CAMERA_TARGET_OFFSET);
         isDriving = true;
-        offsetToUse = CAMERA_OFFSET_CAR; // Use car offset
+        offsetToUse = CAMERA_OFFSET_CAR;
     } else if (playerControlMode === 'character' && character) {
         currentTargetPos = character.position.clone().add(CAMERA_TARGET_OFFSET);
     } else {
-        return; // No valid target
+        return;
     }
 
     const targetPos = currentTargetPos;
 
     // --- Update Camera Angles ---
     let finalHorizontalAngle = cameraHorizontalAngle;
-    if (isDriving && currentDrivingCar) { // Check currentDrivingCar exists
-        // Target angle is PI radians opposite the car's angle (to look from behind)
-        const targetHorizontalAngle = currentDrivingCar.angle + Math.PI; 
-
-        // Lerp horizontal angle towards target angle
-        // Need to handle angle wrapping correctly for lerp
-        const currentAngle = cameraHorizontalAngle;
-        const shortestAngle = Math.atan2(Math.sin(targetHorizontalAngle - currentAngle), Math.cos(targetHorizontalAngle - currentAngle));
+    if (isDriving && currentDrivingCar) {
+        const targetHorizontalAngle = currentDrivingCar.angle + Math.PI;
+        const shortestAngle = Math.atan2(Math.sin(targetHorizontalAngle - cameraHorizontalAngle), 
+                                       Math.cos(targetHorizontalAngle - cameraHorizontalAngle));
+        
+        // Use exponential smoothing for angle
         const angleLerpFactor = 1.0 - Math.exp(-CAMERA_ANGLE_FOLLOW_SPEED * deltaTime);
         cameraHorizontalAngle += shortestAngle * angleLerpFactor;
-        finalHorizontalAngle = cameraHorizontalAngle; // Use the lerped angle
-    } // else: Use the mouse-controlled angle
-
-    // Smoothly interpolate the actual vertical angle towards the target
+        finalHorizontalAngle = cameraHorizontalAngle;
+    }
+    
+    // Smoothly interpolate vertical angle with exponential smoothing
     const verticalLerpFactor = 1.0 - Math.exp(-CAMERA_VERTICAL_SMOOTH_SPEED * deltaTime);
     cameraVerticalAngle = THREE.MathUtils.lerp(cameraVerticalAngle, targetCameraVerticalAngle, verticalLerpFactor);
-
-    // Use the interpolated vertical angle
     const finalVerticalAngle = cameraVerticalAngle;
 
-    // --- Calculate Camera Position ---
-    // 2. Calculate Rotation based on Final Angles
+    // Calculate rotation quaternions
     const rotationY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), finalHorizontalAngle);
     const rotationX = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), finalVerticalAngle);
     const cameraRotation = new THREE.Quaternion().multiplyQuaternions(rotationY, rotationX);
 
-    // 3. Calculate Desired Camera Position
+    // Calculate desired camera position with exponential smoothing
     const desiredOffset = offsetToUse.clone().applyQuaternion(cameraRotation);
     const desiredPosition = targetPos.clone().add(desiredOffset);
 
-    // 4. Prevent Camera Floor Clipping
+    // Prevent camera floor clipping
     if (desiredPosition.y < CAMERA_MIN_Y) {
         desiredPosition.y = CAMERA_MIN_Y;
     }
 
-    // 5. Smoothly Interpolate Camera Position
-    const lerpFactor = 1.0 - Math.exp(-CAMERA_SMOOTH_SPEED * deltaTime);
-    if (deltaTime > 0) { 
-         camera.position.lerp(desiredPosition, lerpFactor);
+    // Use exponential smoothing for position
+    const positionLerpFactor = 1.0 - Math.exp(-CAMERA_SMOOTH_SPEED * deltaTime);
+    if (deltaTime > 0) {
+        camera.position.lerp(desiredPosition, positionLerpFactor);
     }
    
-    // 6. Look At Target
-    camera.lookAt(targetPos);
+    // Look at target with slight smoothing
+    const currentLookAt = new THREE.Vector3();
+    camera.getWorldDirection(currentLookAt);
+    const targetLookAt = targetPos.clone().sub(camera.position).normalize();
+    const lookAtLerpFactor = 1.0 - Math.exp(-CAMERA_SMOOTH_SPEED * 1.5 * deltaTime);
+    currentLookAt.lerp(targetLookAt, lookAtLerpFactor);
+    camera.lookAt(camera.position.clone().add(currentLookAt));
 }
 
 function updateNpcs(deltaTime) {
-    if (!npcTexturesLoaded) return;
+    if (!npcTexturesLoaded || npcTextures.length === 0) return;
 
     const angleIncrement = NPC_ANGLE_INCREMENT;
     const numAngles = NPC_ANGLES.length;
@@ -1759,8 +2356,9 @@ function updateNpcs(deltaTime) {
 
     for (let i = 0; i < npcs.length; i++) {
         const npc = npcs[i];
+        const currentNpcTextures = npcTextures[npc.npcTypeIndex]; // Get textures for this NPC's type
 
-        // --- Handle Hit State --- 
+        // --- Handle Hit State ---
         if (npc.state === 'hit') {
             // Apply gravity
             npc.velocity.y -= GRAVITY * deltaTime;
@@ -1866,6 +2464,164 @@ function updateNpcs(deltaTime) {
                   }
                }
           }
+         // Vs Car 3
+         if (!collisionDetected && car3.sprite && currentDrivingCar !== car3) {
+              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
+              const distSq = potentialPosition.distanceToSquared(car3.position);
+              if (distSq < radiiSum * radiiSum) {
+                  collisionDetected = true;
+                  // --- Static Car 3 Hit NPC Logic --- 
+                  if (npc.state !== 'hit') { 
+                      console.log("Static Car 3 hit NPC!", npc.id);
+                      npc.state = 'hit';
+                      let impulseDirection = car3.forward.clone();
+                      if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1);
+                      impulseDirection.normalize();
+                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
+                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
+                      npc.timeUntilNextDecision = 10; 
+                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
+                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
+                      npc.sprite.position.copy(npc.position);
+                  }
+               }
+          }
+         // Vs Car 4
+         if (!collisionDetected && car4.sprite && currentDrivingCar !== car4) {
+              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
+              const distSq = potentialPosition.distanceToSquared(car4.position);
+              if (distSq < radiiSum * radiiSum) {
+                  collisionDetected = true;
+                  // --- Static Car 4 Hit NPC Logic --- 
+                  if (npc.state !== 'hit') { 
+                      console.log("Static Car 4 hit NPC!", npc.id);
+                      npc.state = 'hit';
+                      let impulseDirection = car4.forward.clone();
+                      if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1);
+                      impulseDirection.normalize();
+                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
+                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
+                      npc.timeUntilNextDecision = 10; 
+                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
+                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
+                      npc.sprite.position.copy(npc.position);
+                  }
+               }
+          }
+         // Vs Car 5
+         if (!collisionDetected && car5.sprite && currentDrivingCar !== car5) {
+              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
+              const distSq = potentialPosition.distanceToSquared(car5.position);
+              if (distSq < radiiSum * radiiSum) {
+                  collisionDetected = true;
+                  // --- Static Car 5 Hit NPC Logic --- 
+                  if (npc.state !== 'hit') { 
+                      console.log("Static Car 5 hit NPC!", npc.id);
+                      npc.state = 'hit';
+                      let impulseDirection = car5.forward.clone();
+                      if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1);
+                      impulseDirection.normalize();
+                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
+                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
+                      npc.timeUntilNextDecision = 10; 
+                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
+                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
+                      npc.sprite.position.copy(npc.position);
+                  }
+               }
+          }
+         // Vs Car 6
+         if (!collisionDetected && car6.sprite && currentDrivingCar !== car6) {
+              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
+              const distSq = potentialPosition.distanceToSquared(car6.position);
+              if (distSq < radiiSum * radiiSum) {
+                  collisionDetected = true;
+                  // --- Static Car 6 Hit NPC Logic --- 
+                  if (npc.state !== 'hit') { 
+                      console.log("Static Car 6 hit NPC!", npc.id);
+                      npc.state = 'hit';
+                      let impulseDirection = car6.forward.clone();
+                      if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1);
+                      impulseDirection.normalize();
+                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
+                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
+                      npc.timeUntilNextDecision = 10; 
+                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
+                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
+                      npc.sprite.position.copy(npc.position);
+                  }
+               }
+          }
+         // Vs Car 7
+         if (!collisionDetected && car7.sprite && currentDrivingCar !== car7) {
+              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
+              const distSq = potentialPosition.distanceToSquared(car7.position);
+              if (distSq < radiiSum * radiiSum) {
+                  collisionDetected = true;
+                  // --- Static Car 7 Hit NPC Logic --- 
+                  if (npc.state !== 'hit') { 
+                      console.log("Static Car 7 hit NPC!", npc.id);
+                      npc.state = 'hit';
+                      let impulseDirection = car7.forward.clone();
+                      if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1);
+                      impulseDirection.normalize();
+                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
+                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
+                      npc.timeUntilNextDecision = 10; 
+                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
+                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
+                      npc.sprite.position.copy(npc.position);
+                  }
+               }
+          }
+         // Vs Car 8
+         /*
+         if (!collisionDetected && car8.sprite && currentDrivingCar !== car8) {
+              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
+              const distSq = potentialPosition.distanceToSquared(car8.position);
+              if (distSq < radiiSum * radiiSum) {
+                  collisionDetected = true;
+                  // --- Static Car 8 Hit NPC Logic --- 
+                  if (npc.state !== 'hit') { 
+                      console.log("Static Car 8 hit NPC!", npc.id);
+                      npc.state = 'hit';
+                      let impulseDirection = car8.forward.clone();
+                      if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1);
+                      impulseDirection.normalize();
+                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
+                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
+                      npc.timeUntilNextDecision = 10; 
+                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
+                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
+                      npc.sprite.position.copy(npc.position);
+                  }
+               }
+          }
+         */
+         // Vs Car 9
+         /*
+         if (!collisionDetected && car9.sprite && currentDrivingCar !== car9) {
+              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
+              const distSq = potentialPosition.distanceToSquared(car9.position);
+              if (distSq < radiiSum * radiiSum) {
+                  collisionDetected = true;
+                  // --- Static Car 9 Hit NPC Logic --- 
+                  if (npc.state !== 'hit') { 
+                      console.log("Static Car 9 hit NPC!", npc.id);
+                      npc.state = 'hit';
+                      let impulseDirection = car9.forward.clone();
+                      if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1);
+                      impulseDirection.normalize();
+                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
+                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
+                      npc.timeUntilNextDecision = 10; 
+                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
+                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
+                      npc.sprite.position.copy(npc.position);
+                  }
+               }
+          }
+         */
          // Vs DRIVEN Car (if any)
          if (!collisionDetected && playerControlMode === 'car' && currentDrivingCar && currentDrivingCar.sprite) {
               const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
@@ -1960,6 +2716,7 @@ function updateNpcs(deltaTime) {
                 relativeAngleRad = (relativeAngleRad + Math.PI * 3) % (Math.PI * 2) - Math.PI; // Normalize -PI to PI
                 let angleDeg = THREE.MathUtils.radToDeg(relativeAngleRad);
                 angleDeg = (angleDeg + 360) % 360; // Normalize 0-360
+                angleDeg = (360 - angleDeg) % 360; // <<< Apply mirroring fix (like player character)
                 
                 // Quantize to nearest NPC angle (45 degree increments)
                 const quantizedIndex = Math.round(angleDeg / angleIncrement) % numAngles;
@@ -1970,14 +2727,16 @@ function updateNpcs(deltaTime) {
         // --- Texture Update ---
         // Determine which state's textures to use
         const textureStateToUse = (npc.state === 'hit') ? 'idle' : npc.state; // Use idle textures if hit
-        const stateTextures = npcTextures[textureStateToUse]; 
+        // Use the specific texture set for this NPC type
+        const stateTextures = currentNpcTextures[textureStateToUse];
 
         if (stateTextures && stateTextures[npc.currentAngle] && stateTextures[npc.currentAngle][npc.currentFrame]) {
             npc.sprite.material.map = stateTextures[npc.currentAngle][npc.currentFrame];
             npc.sprite.material.needsUpdate = true;
         } else {
              // Fallback if texture missing (e.g., angle/frame combo invalid for the chosen state)
-             const fallbackTexture = npcTextures.idle?.[0]?.[0]; 
+             // Use the fallback from the specific NPC type's textures
+             const fallbackTexture = currentNpcTextures.idle?.[0]?.[0];
              if (fallbackTexture && npc.sprite.material.map !== fallbackTexture) {
                   npc.sprite.material.map = fallbackTexture;
                   npc.sprite.material.needsUpdate = true;
@@ -1996,7 +2755,15 @@ function updateNpcs(deltaTime) {
 let animationFrameId = null;
 function animate() {
     animationFrameId = requestAnimationFrame(animate);
-    const deltaTime = clock.getDelta();
+    let deltaTime = clock.getDelta();
+
+    // Clamp deltaTime to prevent huge jumps after tab out
+    deltaTime = Math.min(deltaTime, 0.1); // Max step of 0.1 seconds
+
+    // Update CRT time uniform
+    if (crtPass && isCrtEnabled) {
+        crtPass.uniforms.time.value += deltaTime;
+    }
 
     // Update camera position and rotation
     updateCamera(deltaTime);
@@ -2025,112 +2792,45 @@ function animate() {
     if (car2TexturesLoaded && currentDrivingCar !== car2) {
         updateCarVisuals(car2, deltaTime);
     }
+    if (car3TexturesLoaded && currentDrivingCar !== car3) {
+        updateCarVisuals(car3, deltaTime);
+    }
+    if (car4TexturesLoaded && currentDrivingCar !== car4) {
+        updateCarVisuals(car4, deltaTime);
+    }
+    if (car5TexturesLoaded && currentDrivingCar !== car5) {
+        updateCarVisuals(car5, deltaTime);
+    }
+    if (car6TexturesLoaded && currentDrivingCar !== car6) {
+        updateCarVisuals(car6, deltaTime);
+    }
+    if (car7TexturesLoaded && currentDrivingCar !== car7) {
+        updateCarVisuals(car7, deltaTime);
+    }
+    /*
+    // Update visuals for car8 if not driven
+    if (car8TexturesLoaded && currentDrivingCar !== car8) {
+        updateCarVisuals(car8, deltaTime);
+    }
+    // Update visuals for car9 if not driven
+    if (car9TexturesLoaded && currentDrivingCar !== car9) {
+        updateCarVisuals(car9, deltaTime);
+    }
+    */
 
     if (npcTexturesLoaded) { // Update NPCs
         updateNpcs(deltaTime);
     }
     
-    // Update particles (Car Dust)
-    updateParticles(deltaTime);
-    // Update Ambient Dust
-    updateAmbientDustParticles(deltaTime);
+    // Update Pow Effects
     updatePowEffects(deltaTime); // Add call to update POW effects
 
+    // Update water time uniform for wave animation
+    if (window.water) {
+        window.water.material.uniforms['time'].value += deltaTime / 2.0; // Adjust speed as needed
+    }
+
     composer.render(); 
-}
-
-function emitDustParticle() {
-    const particle = dustParticleData[nextDustParticleIndex];
-
-    // Calculate emission position behind the car
-    const rearOffset = car.forward.clone().negate().multiplyScalar(CAR_SCALE * 0.4); // Offset from car center
-    particle.position.copy(car.position).add(rearOffset);
-    particle.position.y = CAR_Y_POS + 0.1; // Start slightly above car base
-
-    // Calculate velocity (mostly up and back, with spread)
-    const spread = 1.5;
-    particle.velocity.set(
-        (Math.random() - 0.5) * spread, 
-        Math.random() * 1.0 + 0.5, // Upwards bias
-        (Math.random() - 0.5) * spread 
-    );
-    // Add some velocity opposite to car's forward movement
-    particle.velocity.add(car.forward.clone().negate().multiplyScalar(1.0 + Math.random()));
-    // Add small component of car's actual velocity
-    particle.velocity.add(car.velocity.clone().multiplyScalar(0.1)); 
-
-    particle.lifetime = DUST_PARTICLE_LIFETIME * (0.8 + Math.random() * 0.4); // Randomize lifetime slightly
-    particle.alpha = 1.0; // Start fully visible
-
-    // Update the specific particle's position in the buffer
-    const i = nextDustParticleIndex;
-    dustParticleGeometry.attributes.position.setXYZ(i, particle.position.x, particle.position.y, particle.position.z);
-    // Initial color (white)
-    dustParticleGeometry.attributes.color.setXYZ(i, 1, 1, 1); 
-
-    nextDustParticleIndex = (nextDustParticleIndex + 1) % MAX_DUST_PARTICLES; // Cycle through particles
-}
-
-function updateParticles(deltaTime) {
-    if (!dustParticles) return;
-
-    // Emit new particles if driving
-    if (playerControlMode === 'car') {
-        const speed = car.velocity.length();
-        const particlesToEmit = Math.floor(speed * DUST_EMISSION_RATE_PER_SPEED * deltaTime);
-        for (let i = 0; i < particlesToEmit; i++) {
-            emitDustParticle();
-        }
-    }
-
-    const positions = dustParticleGeometry.attributes.position.array;
-    const colors = dustParticleGeometry.attributes.color.array;
-    let aliveParticles = 0;
-
-    for (let i = 0; i < MAX_DUST_PARTICLES; i++) {
-        const particle = dustParticleData[i];
-        if (particle.lifetime > 0) {
-            particle.lifetime -= deltaTime;
-            if (particle.lifetime <= 0) {
-                // Particle died
-                particle.alpha = 0;
-            } else {
-                // Update position
-                particle.position.add(particle.velocity.clone().multiplyScalar(deltaTime));
-                // Apply simple gravity/drag maybe?
-                particle.velocity.y -= 0.5 * deltaTime; // Simple downward drift
-                
-                // Fade out alpha based on lifetime
-                particle.alpha = particle.lifetime / DUST_PARTICLE_LIFETIME;
-
-                // Update buffers
-                positions[i * 3] = particle.position.x;
-                positions[i * 3 + 1] = particle.position.y;
-                positions[i * 3 + 2] = particle.position.z;
-                // Update color alpha (using RGB for now, as PointsMaterial opacity is global)
-                const alphaClamped = Math.max(0, Math.min(1, particle.alpha)) * 0.8; // Use 0.8 factor for base opacity
-                colors[i * 3] = alphaClamped;
-                colors[i * 3 + 1] = alphaClamped;
-                colors[i * 3 + 2] = alphaClamped;
-                aliveParticles++;
-            }
-        } else {
-            // Ensure dead particles are invisible in buffers
-            if(colors[i * 3] !== 0) { // Only update if not already 0
-                positions[i * 3 + 1] = -1000; // Move dead particles far away
-                colors[i * 3] = 0;
-                colors[i * 3 + 1] = 0;
-                colors[i * 3 + 2] = 0;
-            }
-        }
-    }
-
-    // Only update buffers if particles were alive or state changed
-    if (aliveParticles > 0 || dustParticleGeometry.attributes.position.needsUpdate) {
-        dustParticleGeometry.attributes.position.needsUpdate = true;
-        dustParticleGeometry.attributes.color.needsUpdate = true;
-    }
-
 }
 
 // --- Start ---
@@ -2140,6 +2840,7 @@ init();
 function isCollidingWithSkyscraper(position, radius) {
     const halfBase = SKYSCRAPER_BASE_SIZE / 2;
     for (const buildingPos of skyscraperPositions) {
+        // Calculate building bounds based on its centered position
         const minX = buildingPos.x - halfBase;
         const maxX = buildingPos.x + halfBase;
         const minZ = buildingPos.z - halfBase;
@@ -2156,3 +2857,131 @@ function isCollidingWithSkyscraper(position, radius) {
     }
     return null; // No collision
 }
+
+// --- Fullscreen Toggle Function ---
+function toggleFullscreen() {
+    if (!document.fullscreenElement &&    // Standard syntax
+        !document.mozFullScreenElement && // Firefox
+        !document.webkitFullscreenElement && // Chrome, Safari and Opera
+        !document.msFullscreenElement ) { // IE/Edge
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen();
+        } else if (document.documentElement.mozRequestFullScreen) { /* Firefox */
+            document.documentElement.mozRequestFullScreen();
+        } else if (document.documentElement.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+            document.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+        } else if (document.documentElement.msRequestFullscreen) { /* IE/Edge */
+            document.documentElement.msRequestFullscreen();
+        }
+        console.log("Entering Fullscreen");
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.mozCancelFullScreen) { /* Firefox */
+            document.mozCancelFullScreen();
+        } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { /* IE/Edge */
+            document.msExitFullscreen();
+        }
+        console.log("Exiting Fullscreen");
+    }
+}
+
+// --- Create Fences Function ---
+function createFences() {
+    if (!fenceTextureLoaded) {
+        console.warn("Fence texture not loaded, cannot create fences.");
+        return;
+    }
+
+    const fenceMaterial = new THREE.MeshBasicMaterial({
+        map: fenceTexture,
+        transparent: true,
+        alphaTest: 0.5,
+        side: THREE.DoubleSide // Show texture on both sides
+    });
+
+    // const fenceYPos = FENCE_HEIGHT / 2; // Previous calculation - Should place bottom at y=0
+    const fenceYPos = FENCE_HEIGHT / 3 - 1; // Nudge down slightly to compensate for potential visual offset
+    const fenceMeshes = [];
+
+    // North Fence
+    const northGeom = new THREE.PlaneGeometry(ISLAND_WIDTH, FENCE_HEIGHT);
+    const northMat = fenceMaterial.clone();
+    northMat.map = fenceTexture.clone();
+    northMat.map.repeat.set(ISLAND_WIDTH / FENCE_TEXTURE_SECTION_WIDTH, 1);
+    northMat.map.needsUpdate = true;
+    const northFence = new THREE.Mesh(northGeom, northMat);
+    northFence.position.set(0, fenceYPos, -ISLAND_LENGTH / 2 + FENCE_COLLISION_MARGIN);
+    scene.add(northFence);
+    fenceMeshes.push(northFence);
+
+    // South Fence
+    const southGeom = new THREE.PlaneGeometry(ISLAND_WIDTH, FENCE_HEIGHT);
+    const southMat = fenceMaterial.clone();
+    southMat.map = fenceTexture.clone();
+    southMat.map.repeat.set(ISLAND_WIDTH / FENCE_TEXTURE_SECTION_WIDTH, 1);
+    southMat.map.needsUpdate = true;
+    const southFence = new THREE.Mesh(southGeom, southMat);
+    southFence.position.set(0, fenceYPos, ISLAND_LENGTH / 2 - FENCE_COLLISION_MARGIN);
+    southFence.rotation.y = Math.PI; // Rotate to face inwards (optional)
+    scene.add(southFence);
+    fenceMeshes.push(southFence);
+
+    // West Fence
+    const westGeom = new THREE.PlaneGeometry(ISLAND_LENGTH, FENCE_HEIGHT);
+    const westMat = fenceMaterial.clone();
+    westMat.map = fenceTexture.clone();
+    westMat.map.repeat.set(ISLAND_LENGTH / FENCE_TEXTURE_SECTION_WIDTH, 1);
+    westMat.map.needsUpdate = true;
+    const westFence = new THREE.Mesh(westGeom, westMat);
+    westFence.position.set(-ISLAND_WIDTH / 2 + FENCE_COLLISION_MARGIN, fenceYPos, 0);
+    westFence.rotation.y = Math.PI / 2;
+    scene.add(westFence);
+    fenceMeshes.push(westFence);
+
+    // East Fence
+    const eastGeom = new THREE.PlaneGeometry(ISLAND_LENGTH, FENCE_HEIGHT);
+    const eastMat = fenceMaterial.clone();
+    eastMat.map = fenceTexture.clone();
+    eastMat.map.repeat.set(ISLAND_LENGTH / FENCE_TEXTURE_SECTION_WIDTH, 1);
+    eastMat.map.needsUpdate = true;
+    const eastFence = new THREE.Mesh(eastGeom, eastMat);
+    eastFence.position.set(ISLAND_WIDTH / 2 - FENCE_COLLISION_MARGIN, fenceYPos, 0);
+    eastFence.rotation.y = -Math.PI / 2;
+    scene.add(eastFence);
+    fenceMeshes.push(eastFence);
+
+    console.log(`Created ${fenceMeshes.length} fence segments.`);
+}
+// --- End Create Fences Function ---
+
+// --- CRT Filter Presets ---
+const crtFilterPresets = [
+    { name: "Default", scanlineIntensity: 0.3, curvature: 4.0, vignette: 0.8, colorOffset: 0.0 },
+    { name: "Intense Scanlines", scanlineIntensity: 0.6, curvature: 4.0, vignette: 0.8, colorOffset: 0.0 },
+    { name: "Heavy Curvature", scanlineIntensity: 0.2, curvature: 2.0, vignette: 0.7, colorOffset: 0.002 },
+    { name: "Strong Vignette", scanlineIntensity: 0.3, curvature: 5.0, vignette: 0.4, colorOffset: 0.0 },
+    { name: "Color Aberration", scanlineIntensity: 0.1, curvature: 6.0, vignette: 0.9, colorOffset: 0.008 },
+    { name: "Subtle", scanlineIntensity: 0.15, curvature: 6.0, vignette: 0.9, colorOffset: 0.0 },
+    { name: "No Effects", scanlineIntensity: 0.0, curvature: 100.0, vignette: 1.0, colorOffset: 0.0 }, // Effectively off
+];
+let currentCrtFilterIndex = 0;
+// --- End CRT Filter Presets ---
+
+// --- Apply CRT Filter Preset Function ---
+function applyCrtFilterPreset() {
+    if (!crtPass || !crtFilterPresets || crtFilterPresets.length === 0) {
+        console.warn("Cannot apply CRT preset: Pass or presets not ready.");
+        return;
+    }
+    const preset = crtFilterPresets[currentCrtFilterIndex];
+    crtPass.uniforms.scanlineIntensity.value = preset.scanlineIntensity;
+    crtPass.uniforms.curvature.value = preset.curvature;
+    crtPass.uniforms.vignette.value = preset.vignette;
+    crtPass.uniforms.colorOffset.value = preset.colorOffset;
+    // Note: scanlineCount and resolution are generally based on window size, not presets.
+    console.log(`Applied CRT Preset: ${preset.name}`);
+}
+// --- End Apply CRT Filter Preset Function ---

@@ -1,0 +1,383 @@
+{
+  "placedObjects": [
+    {
+      "type": "building",
+      "position": {
+        "x": -15.352004077254197,
+        "y": 0.51,
+        "z": 102.1200270284037
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": -9.776170615992442,
+        "y": 0.51,
+        "z": 109.50651904925599
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": 2.075469205917954,
+        "y": 0.51,
+        "z": 110.09364666760284
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": 12.635694957108736,
+        "y": 0.51,
+        "z": 109.90071671718476
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": 15.386617057060928,
+        "y": 0.51,
+        "z": 102.97350782658886
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": 16.95021683734514,
+        "y": 0.51,
+        "z": 94.55145220690451
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": 17.382298530264137,
+        "y": 0.51,
+        "z": 88.58320366093068
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": 20.209812361868796,
+        "y": 0.51,
+        "z": 70.55895216274953
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": 20.439549146758928,
+        "y": 0.51,
+        "z": 58.854077325831625
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": 18.10163147578862,
+        "y": 0.51,
+        "z": 45.0963500539729
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": 21.2543857951555,
+        "y": 0.51,
+        "z": 8.299807483367744
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": 19.59625332688175,
+        "y": 0.51,
+        "z": -29.836872030920517
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": 14.78177925123503,
+        "y": 0.51,
+        "z": -65.97540898964402
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": -17.086540173743558,
+        "y": 0.51,
+        "z": -84.17646990855934
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": -14.81276516406075,
+        "y": 0.51,
+        "z": -44.11610356067868
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": -15.112609992514631,
+        "y": 0.51,
+        "z": -0.1838780083114102
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": -16.346294165948862,
+        "y": 0.51,
+        "z": 18.260694726627506
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": -14.83824469121161,
+        "y": 0.51,
+        "z": 42.83673602361074
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": -17.78076330194726,
+        "y": 0.51,
+        "z": 58.18744322951464
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": -16.26939428973376,
+        "y": 0.51,
+        "z": 74.46986049982387
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": -17.900248416189747,
+        "y": 0.51,
+        "z": 84.9894104877819
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": -14.043422561600481,
+        "y": 0.51,
+        "z": 12.410544454113271
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "restaurant1"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": -14.878254106461656,
+        "y": 0.51,
+        "z": 3.2086212642952177
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "restaurant1"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": -14.899607957078173,
+        "y": 0.51,
+        "z": 38.227345215120266
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "restaurant1"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": 18.10781421618928,
+        "y": 0.51,
+        "z": 38.803539918700096
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "restaurant1"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": 18.08172058117302,
+        "y": 0.51,
+        "z": 20.08403488583081
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "restaurant1"
+    },
+    {
+      "type": "building",
+      "position": {
+        "x": 18.583605882346546,
+        "y": 0.51,
+        "z": 1.3949192994832202
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "restaurant1"
+    }
+  ],
+  "floorTexture": "data:image/png;base64,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"
+}

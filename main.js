@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 // import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 // Add imports for post-processing
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -18,6 +18,8 @@ let characterSprite;
 let clock = new THREE.Clock();
 let crtPass; // Add variable for CRT pass
 let isCrtEnabled = false; // State for CRT effect
+let isLeftMouseDown = false;
+let aimVerticalAngle = null;
 
 // --- Configuration ---
 const SPRITE_PATH = '/sprites/';
@@ -107,7 +109,11 @@ const NPC_TARGET_RADIUS = 15.0; // Max distance for random walk target
 const NPC_COLLISION_RADIUS = 0.4;
 const NPC_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315]; // 8 angles
 const NPC_ANGLE_INCREMENT = 45;
-const ROAD_WIDTH = 4; // Define road width globally
+const ROAD_WIDTH = 6; // Increased road width for more realism
+const MAIN_ROAD_WIDTH = 8; // Width for the main avenue
+const INTERSECTION_SIZE = 8; // Size of intersection areas
+const SIDEWALK_WIDTH = 1.5; // Width of sidewalks in meters
+const SIDEWALK_HEIGHT = 0.05; // Height of sidewalks above road level
 const PUNCH_DAMAGE_FRAME = 5; // Frame in punch animation where damage is applied
 const PUNCH_HIT_RANGE = 1.0;    // How far the punch reaches
 const HIT_IMPULSE_HORIZONTAL = 8.0;
@@ -276,7 +282,12 @@ let textures = {
     walk: {},  // { 0: [tex0, tex1, ...], 45: [...], ... }
     run: {},   // { 0: [tex0, tex1, ...], 45: [...], ... }
     jump: {},   // { 0: [tex0, tex1, ...], 45: [...], ... }
-    punch: {}   // { 0: [tex0, tex1, ...], 45: [...], ... }
+    punch: {},   // { 0: [tex0, tex1, ...], 45: [...], ... }
+    idlegun: {},
+    walkgun: {},
+    rungun: {},
+    gunaim: {},
+    gunshoot: {}
 };
 let treeTextures = {}; // { 0: tex, 22.5: tex, ... }
 let treeSprites = [];  // Array to hold tree mesh objects
@@ -294,6 +305,7 @@ let npcTextures = []; // NPC Textures - Will be an array of texture sets
 let grassTexture = null; // Single Grass Texture
 let powTexture = null; // Texture for the POW effect
 let bangTexture = null; // Texture for the BANG effect (car hits)
+let pewTexture = null; // Texture for the PEW effect (comic gun effect)
 let activePowEffects = []; // Array for managing active POW sprites
 let buildingTexture = null; // Texture for skyscrapers
 let fenceTexture = null; // Texture for the fence
@@ -602,51 +614,363 @@ function init() {
     buildingTexture.wrapT = THREE.RepeatWrapping;
     // Base repeat will be adjusted per skyscraper
 
-    // Road plane
-    const roadTexture = textureLoader.load('/textures/road.webp');
-    roadTexture.wrapS = THREE.RepeatWrapping; // Repeat along the length
-    roadTexture.wrapT = THREE.RepeatWrapping; // Repeat across the width (optional, could clamp)
-    const roadLength = ISLAND_LENGTH - 10; // Make road slightly shorter than island
-    roadTexture.repeat.set(1, roadLength / ROAD_WIDTH); // Use global constant (changed to uppercase)
+    // Road network
+    const roadTexture = textureLoader.load('/textures/asphalt.webp');
+    roadTexture.wrapS = THREE.RepeatWrapping;
+    roadTexture.wrapT = THREE.RepeatWrapping;
+    
+    // Load sidewalk texture
+    const sidewalkTexture = textureLoader.load('/textures/sidewalk.webp');
+    sidewalkTexture.wrapS = THREE.RepeatWrapping;
+    sidewalkTexture.wrapT = THREE.RepeatWrapping;
 
-    const roadGeometry = new THREE.PlaneGeometry(ROAD_WIDTH, roadLength); // Use global constant
-    const roadMaterial = new THREE.MeshStandardMaterial({
-        map: roadTexture,
-        side: THREE.DoubleSide, // Can be FrontSide if camera won't go below ground
-        transparent: false, // Assuming road texture is opaque
-        roughness: 0.9, // Increase roughness
-        metalness: 0.1  // Reduce metalness
+    // Define street positions first
+    const crossStreetPositions = [-160, -120, -80, -40, 0, 40, 80, 120, 160];
+    const parallelStreetPositions = [-30, -15, 15, 30];
+
+    // Create main avenue
+    const mainRoadLength = ISLAND_LENGTH - 20;
+    const mainRoadGeometry = new THREE.PlaneGeometry(MAIN_ROAD_WIDTH, mainRoadLength);
+    const mainRoadMaterial = new THREE.MeshStandardMaterial({
+        map: roadTexture.clone(),
+        side: THREE.DoubleSide,
+        roughness: 0.9,
+        metalness: 0.1
     });
-    const road = new THREE.Mesh(roadGeometry, roadMaterial);
-    road.rotation.x = -Math.PI / 2; // Lay it flat on the ground
-    // Center the road along the island's length
-    road.position.set(0, 0.01, 0); // Position centered Z, slightly above ground
-    scene.add(road);
+    mainRoadMaterial.map.repeat.set(MAIN_ROAD_WIDTH / 2, mainRoadLength / 2);
+    mainRoadMaterial.map.needsUpdate = true;
+    
+    const mainRoad = new THREE.Mesh(mainRoadGeometry, mainRoadMaterial);
+    mainRoad.rotation.x = -Math.PI / 2;
+    mainRoad.position.set(0, 0.01, 0);
+    scene.add(mainRoad);
 
-    // --- Crossroads ---
-    const crossroadWidth = ROAD_WIDTH; // Use global constant for consistency
-    const crossroadLength = ISLAND_WIDTH; // Make crossroads span the island width
-    // Adjust Z positions to be within the new roadLength/2 bounds
-    const crossroadPositionsZ = [-20, -60, -100, -140, -180, 20, 60, 100, 140, 180]; // Adjusted positions within [-roadLength/2, roadLength/2]
+    // Add sidewalks for main avenue - split into segments between cross streets
+    const mainSidewalkGeometry = new THREE.PlaneGeometry(SIDEWALK_WIDTH, ROAD_WIDTH * 2);
+    const sidewalkMaterial = new THREE.MeshStandardMaterial({
+        map: sidewalkTexture.clone(),
+        side: THREE.DoubleSide,
+        roughness: 0.8,
+        metalness: 0.1
+    });
+    sidewalkMaterial.map.repeat.set(1, 2);
+    sidewalkMaterial.map.needsUpdate = true;
 
-    for (const zPos of crossroadPositionsZ) {
-        const crossroadTexture = roadTexture.clone(); // Clone texture for independent repetition
-        crossroadTexture.needsUpdate = true; // Important when cloning textures
-        crossroadTexture.repeat.set(1, crossroadLength / crossroadWidth); // Repeat along its length
+    // Create sidewalk segments for main avenue
+    for (let i = 0; i < crossStreetPositions.length - 1; i++) {
+        const startZ = crossStreetPositions[i];
+        const endZ = crossStreetPositions[i + 1];
+        const segmentLength = endZ - startZ - ROAD_WIDTH * 1.5; // Increase gap at intersections
+        
+        if (segmentLength > 1) {
+            const segmentGeometry = new THREE.PlaneGeometry(SIDEWALK_WIDTH, segmentLength);
+            const segmentMaterial = sidewalkMaterial.clone();
+            segmentMaterial.map = sidewalkTexture.clone();
+            segmentMaterial.map.repeat.set(1, segmentLength / 2);
+            segmentMaterial.map.needsUpdate = true;
 
-        const crossroadGeometry = new THREE.PlaneGeometry(crossroadWidth, crossroadLength);
-        const crossroadMaterial = new THREE.MeshStandardMaterial({
-            map: crossroadTexture,
+            // Left sidewalk segment
+            const leftSegment = new THREE.Mesh(segmentGeometry, segmentMaterial.clone());
+            leftSegment.rotation.x = -Math.PI / 2;
+            leftSegment.position.set(
+                -MAIN_ROAD_WIDTH/2 - SIDEWALK_WIDTH/2,
+                SIDEWALK_HEIGHT,
+                (startZ + endZ) / 2 + ROAD_WIDTH/4 // Adjust center position to account for intersection gap
+            );
+            scene.add(leftSegment);
+
+            // Right sidewalk segment
+            const rightSegment = new THREE.Mesh(segmentGeometry, segmentMaterial.clone());
+            rightSegment.rotation.x = -Math.PI / 2;
+            rightSegment.position.set(
+                MAIN_ROAD_WIDTH/2 + SIDEWALK_WIDTH/2,
+                SIDEWALK_HEIGHT,
+                (startZ + endZ) / 2 + ROAD_WIDTH/4 // Adjust center position to account for intersection gap
+            );
+            scene.add(rightSegment);
+        }
+    }
+
+    // Create parallel streets with segmented sidewalks
+    for (const xPos of parallelStreetPositions) {
+        // Create the street
+        const streetGeometry = new THREE.PlaneGeometry(ROAD_WIDTH, mainRoadLength * 0.8);
+        const streetMaterial = new THREE.MeshStandardMaterial({
+            map: roadTexture.clone(),
             side: THREE.DoubleSide,
-            transparent: false,
-            roughness: 0.9, // Increase roughness
-            metalness: 0.1  // Reduce metalness
+            roughness: 0.9,
+            metalness: 0.1
         });
-        const crossroad = new THREE.Mesh(crossroadGeometry, crossroadMaterial);
-        crossroad.rotation.x = -Math.PI / 2; // Lay flat
-        crossroad.rotation.z = Math.PI / 2; // Rotate to be perpendicular
-        crossroad.position.set(0, 0.01, zPos); // Position along the main road, slightly above ground
-        scene.add(crossroad);
+        streetMaterial.map.repeat.set(ROAD_WIDTH / 2, (mainRoadLength * 0.8) / 2);
+        streetMaterial.map.needsUpdate = true;
+        
+        const street = new THREE.Mesh(streetGeometry, streetMaterial);
+        street.rotation.x = -Math.PI / 2;
+        street.position.set(xPos, 0.011, 0);
+        scene.add(street);
+
+        // Create sidewalk segments between cross streets
+        for (let i = 0; i < crossStreetPositions.length - 1; i++) {
+            const startZ = crossStreetPositions[i];
+            const endZ = crossStreetPositions[i + 1];
+            const segmentLength = endZ - startZ - ROAD_WIDTH * 1.5; // Increase gap at intersections
+            
+            if (segmentLength > 1) {
+                const sidewalkGeometry = new THREE.PlaneGeometry(SIDEWALK_WIDTH, segmentLength);
+                const sidewalkMat = sidewalkMaterial.clone();
+                sidewalkMat.map = sidewalkTexture.clone();
+                sidewalkMat.map.repeat.set(1, segmentLength / 2);
+                sidewalkMat.map.needsUpdate = true;
+
+                const sidewalk = new THREE.Mesh(sidewalkGeometry, sidewalkMat);
+                sidewalk.rotation.x = -Math.PI / 2;
+                sidewalk.position.set(
+                    xPos + ROAD_WIDTH/2 + SIDEWALK_WIDTH/2,
+                    SIDEWALK_HEIGHT + 0.001,
+                    (startZ + endZ) / 2 + ROAD_WIDTH/4 // Adjust center position to account for intersection gap
+                );
+                scene.add(sidewalk);
+            }
+        }
+    }
+
+    // Create cross streets with segmented sidewalks
+    for (const zPos of crossStreetPositions) {
+        // Create the street
+        const crossStreetGeometry = new THREE.PlaneGeometry(ROAD_WIDTH, ISLAND_WIDTH);
+        const crossStreetMaterial = new THREE.MeshStandardMaterial({
+            map: roadTexture.clone(),
+            side: THREE.DoubleSide,
+            roughness: 0.9,
+            metalness: 0.1
+        });
+        crossStreetMaterial.map.repeat.set(ROAD_WIDTH / 2, ISLAND_WIDTH / 2);
+        crossStreetMaterial.map.needsUpdate = true;
+        
+        const crossStreet = new THREE.Mesh(crossStreetGeometry, crossStreetMaterial);
+        crossStreet.rotation.x = -Math.PI / 2;
+        crossStreet.rotation.z = Math.PI / 2;
+        crossStreet.position.set(0, 0.012, zPos);
+        scene.add(crossStreet);
+
+        // Create sidewalk segments between parallel streets
+        for (let i = 0; i < parallelStreetPositions.length - 1; i++) {
+            const startX = parallelStreetPositions[i];
+            const endX = parallelStreetPositions[i + 1];
+            const segmentLength = endX - startX - ROAD_WIDTH * 1.5; // Increase gap at intersections
+            
+            if (segmentLength > 1) {
+                const sidewalkGeometry = new THREE.PlaneGeometry(SIDEWALK_WIDTH, segmentLength);
+                const sidewalkMat = sidewalkMaterial.clone();
+                sidewalkMat.map = sidewalkTexture.clone();
+                sidewalkMat.map.repeat.set(1, segmentLength / 2);
+                sidewalkMat.map.needsUpdate = true;
+
+                const sidewalk = new THREE.Mesh(sidewalkGeometry, sidewalkMat);
+                sidewalk.rotation.x = -Math.PI / 2;
+                sidewalk.rotation.z = Math.PI / 2;
+                sidewalk.position.set(
+                    (startX + endX) / 2 + ROAD_WIDTH/4, // Adjust center position to account for intersection gap
+                    SIDEWALK_HEIGHT + 0.002,
+                    zPos + ROAD_WIDTH/2 + SIDEWALK_WIDTH/2
+                );
+                scene.add(sidewalk);
+            }
+        }
+    }
+
+    // Create diagonal roads with segmented sidewalks
+    const diagonalRoadLength = Math.sqrt(2) * ISLAND_WIDTH * 0.6;
+    const diagonalRoadGeometry = new THREE.PlaneGeometry(ROAD_WIDTH, diagonalRoadLength);
+    const diagonalRoadMaterial = new THREE.MeshStandardMaterial({
+        map: roadTexture.clone(),
+        side: THREE.DoubleSide,
+        roughness: 0.9,
+        metalness: 0.1
+    });
+    diagonalRoadMaterial.map.repeat.set(ROAD_WIDTH / 2, diagonalRoadLength / 2);
+    diagonalRoadMaterial.map.needsUpdate = true;
+
+    // Function to find intersection points with other roads
+    function getDiagonalSegments(startX, startZ, angle) {
+        const segments = [];
+        const dx = Math.cos(angle);
+        const dz = Math.sin(angle);
+        const maxLength = diagonalRoadLength;
+        
+        // Add start point
+        segments.push({x: startX, z: startZ});
+        
+        // Check intersections with parallel streets and main avenue
+        for (const x of [...parallelStreetPositions, 0]) {
+            if (Math.abs(x - startX) > 1) {
+                const t = (x - startX) / dx;
+                if (t > 0 && t < maxLength) {
+                    const z = startZ + t * dz;
+                    if (Math.abs(z) <= ISLAND_LENGTH / 2) {
+                        // Add points before and after intersection for proper gap
+                        segments.push({
+                            x: x - dx * ROAD_WIDTH * 0.75,
+                            z: z - dz * ROAD_WIDTH * 0.75,
+                            isRoadStart: true
+                        });
+                        segments.push({
+                            x: x + dx * ROAD_WIDTH * 0.75,
+                            z: z + dz * ROAD_WIDTH * 0.75,
+                            isRoadEnd: true
+                        });
+                    }
+                }
+            }
+        }
+        
+        // Check intersections with cross streets
+        for (const z of crossStreetPositions) {
+            if (Math.abs(z - startZ) > 1) {
+                const t = (z - startZ) / dz;
+                if (t > 0 && t < maxLength) {
+                    const x = startX + t * dx;
+                    if (Math.abs(x) <= ISLAND_WIDTH / 2) {
+                        // Add points before and after intersection for proper gap
+                        segments.push({
+                            x: x - dx * ROAD_WIDTH * 0.75,
+                            z: z - dz * ROAD_WIDTH * 0.75,
+                            isRoadStart: true
+                        });
+                        segments.push({
+                            x: x + dx * ROAD_WIDTH * 0.75,
+                            z: z + dz * ROAD_WIDTH * 0.75,
+                            isRoadEnd: true
+                        });
+                    }
+                }
+            }
+        }
+
+        // Add end point
+        const endX = startX + dx * maxLength;
+        const endZ = startZ + dz * maxLength;
+        segments.push({x: endX, z: endZ});
+        
+        // Sort segments by distance from start
+        segments.sort((a, b) => {
+            const distA = Math.sqrt(Math.pow(a.x - startX, 2) + Math.pow(a.z - startZ, 2));
+            const distB = Math.sqrt(Math.pow(b.x - startX, 2) + Math.pow(b.z - startZ, 2));
+            return distA - distB;
+        });
+        
+        return segments;
+    }
+
+    // Northeast diagonal with segmented sidewalk
+    const diagonalRoad1 = new THREE.Mesh(diagonalRoadGeometry, diagonalRoadMaterial);
+    diagonalRoad1.rotation.x = -Math.PI / 2;
+    diagonalRoad1.rotation.z = Math.PI / 4;
+    diagonalRoad1.position.set(20, 0.013, -60);
+    scene.add(diagonalRoad1);
+
+    const segments1 = getDiagonalSegments(20, -60, Math.PI / 4);
+    for (let i = 0; i < segments1.length - 1; i++) {
+        const start = segments1[i];
+        const end = segments1[i + 1];
+        
+        // Skip if this is a road intersection segment
+        if (start.isRoadStart || start.isRoadEnd || end.isRoadStart || end.isRoadEnd) continue;
+        
+        const segmentLength = Math.sqrt(
+            Math.pow(end.x - start.x, 2) + Math.pow(end.z - start.z, 2)
+        ) - ROAD_WIDTH * 0.5; // Adjust gap size
+        
+        if (segmentLength > 1) {
+            const sidewalkGeometry = new THREE.PlaneGeometry(SIDEWALK_WIDTH, segmentLength);
+            const sidewalkMat = sidewalkMaterial.clone();
+            sidewalkMat.map = sidewalkTexture.clone();
+            sidewalkMat.map.repeat.set(1, segmentLength / 2);
+            sidewalkMat.map.needsUpdate = true;
+
+            const sidewalk = new THREE.Mesh(sidewalkGeometry, sidewalkMat);
+            sidewalk.rotation.x = -Math.PI / 2;
+            sidewalk.rotation.z = Math.PI / 4;
+            const offset = (ROAD_WIDTH/2 + SIDEWALK_WIDTH/2);
+            
+            // Calculate center position between start and end, accounting for road width
+            const centerX = (start.x + end.x) / 2;
+            const centerZ = (start.z + end.z) / 2;
+            
+            // Apply offset perpendicular to road direction
+            sidewalk.position.set(
+                centerX + offset * Math.cos(Math.PI/4 + Math.PI/2),
+                SIDEWALK_HEIGHT + 0.003,
+                centerZ + offset * Math.sin(Math.PI/4 + Math.PI/2)
+            );
+            scene.add(sidewalk);
+        }
+    }
+
+    // Northwest diagonal with segmented sidewalk
+    const diagonalRoad2 = new THREE.Mesh(diagonalRoadGeometry, diagonalRoadMaterial.clone());
+    diagonalRoad2.rotation.x = -Math.PI / 2;
+    diagonalRoad2.rotation.z = -Math.PI / 4;
+    diagonalRoad2.position.set(-20, 0.013, -60);
+    scene.add(diagonalRoad2);
+
+    const segments2 = getDiagonalSegments(-20, -60, -Math.PI / 4);
+    for (let i = 0; i < segments2.length - 1; i++) {
+        const start = segments2[i];
+        const end = segments2[i + 1];
+        
+        // Skip if this is a road intersection segment
+        if (start.isRoadStart || start.isRoadEnd || end.isRoadStart || end.isRoadEnd) continue;
+        
+        const segmentLength = Math.sqrt(
+            Math.pow(end.x - start.x, 2) + Math.pow(end.z - start.z, 2)
+        ) - ROAD_WIDTH * 0.5; // Adjust gap size
+        
+        if (segmentLength > 1) {
+            const sidewalkGeometry = new THREE.PlaneGeometry(SIDEWALK_WIDTH, segmentLength);
+            const sidewalkMat = sidewalkMaterial.clone();
+            sidewalkMat.map = sidewalkTexture.clone();
+            sidewalkMat.map.repeat.set(1, segmentLength / 2);
+            sidewalkMat.map.needsUpdate = true;
+
+            const sidewalk = new THREE.Mesh(sidewalkGeometry, sidewalkMat);
+            sidewalk.rotation.x = -Math.PI / 2;
+            sidewalk.rotation.z = -Math.PI / 4;
+            const offset = (ROAD_WIDTH/2 + SIDEWALK_WIDTH/2);
+            
+            // Calculate center position between start and end, accounting for road width
+            const centerX = (start.x + end.x) / 2;
+            const centerZ = (start.z + end.z) / 2;
+            
+            // Apply offset perpendicular to road direction
+            sidewalk.position.set(
+                centerX + offset * Math.cos(-Math.PI/4 + Math.PI/2),
+                SIDEWALK_HEIGHT + 0.003,
+                centerZ + offset * Math.sin(-Math.PI/4 + Math.PI/2)
+            );
+            scene.add(sidewalk);
+        }
+    }
+
+    // Create intersections
+    for (const zPos of crossStreetPositions) {
+        for (const xPos of [...parallelStreetPositions, 0]) {
+            const intersectionGeometry = new THREE.CircleGeometry(INTERSECTION_SIZE / 2, 32);
+            const intersectionMaterial = new THREE.MeshStandardMaterial({
+                map: roadTexture.clone(),
+                side: THREE.DoubleSide,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            // Adjust intersection texture tiling
+            intersectionMaterial.map.repeat.set(INTERSECTION_SIZE / 2, INTERSECTION_SIZE / 2);
+            intersectionMaterial.map.needsUpdate = true;
+            
+            const intersection = new THREE.Mesh(intersectionGeometry, intersectionMaterial);
+            intersection.rotation.x = -Math.PI / 2;
+            intersection.position.set(xPos, 0.014, zPos);
+            scene.add(intersection);
+        }
     }
 
     // --- Water Plane ---
@@ -712,6 +1036,8 @@ function init() {
     powTexture = textureLoader.load('/sprites/effects/pow.webp');
     // Load BANG Texture
     bangTexture = textureLoader.load('/sprites/effects/bang.webp');
+    // Load PEW Texture
+    pewTexture = textureLoader.load('/sprites/effects/pew.webp');
 
     // Load Character Textures
     loadAllTextures().then(() => {
@@ -799,67 +1125,85 @@ function init() {
 }
 
 async function loadAllTextures() {
-    const promises = [];
+    // Load only the minimal set for startup
+    const initialState = 'idle';
+    const initialAngle = 180;
+    const initialFrame = 0;
     const states = {
         idle: "1702ef2e-9e8b-4a54-b327-09cc1ba22ab3", 
         walk: "8f41066e-26b7-4dd1-9dde-14d95d92f55f",
         run: "399a15c9-b488-49ab-b4fd-3a447237a974",
         jump: "4468dfb8-c011-4b43-bbaa-765d32f52f4b",
-        punch: "26ef782f-b3f7-4a71-83db-66d0fbeedd9d" // Add punch state prefix
+        punch: "26ef782f-b3f7-4a71-83db-66d0fbeedd9d",
+        idlegun: "1e6373b8-d3cc-4f87-a994-818a4141fdbd",
+        walkgun: "2ec22191-f530-46cb-bc83-31dd2279efc4",
+        rungun: "8da83014-332b-4cf8-a306-56bfe570920a",
+        gunaim: "544e1241-8373-49c9-ab20-6884dcb2424f",
+        gunshoot: "15f53665-6dfa-4639-b0da-72b752bd6cd2"
     };
-
-    console.log("Loading textures with prefixes:", states);
-
-    // Vite handles the /public directory automatically
-    const basePath = '/sprites/'; // Path relative to /public
-
-    for (const [state, baseFileNamePart] of Object.entries(states)) {
+    const basePath = '/sprites/';
+    // Load only the initial idle texture
+    return new Promise((resolve, reject) => {
+        const state = initialState;
+        const baseFileNamePart = states[state];
+        const statePath = `${basePath}${state}/`;
+        const angleString = String(initialAngle).replace('.', '_');
+        const angleDirName = angleString.includes('_') ? angleString : `${angleString}_0`;
+        const anglePath = `${statePath}angle_${angleDirName}/`;
+        const framePadded = String(initialFrame).padStart(4, '0');
+        const anglePartInFilename = angleString.includes('_') ? angleString : `${angleString}_0`;
+        const fileName = `${baseFileNamePart}_angle_${anglePartInFilename}_${framePadded}.webp`;
+        const filePath = anglePath + fileName;
         textures[state] = {};
-        const statePath = `${basePath}${state}/`; // e.g., /sprites/idle/
+        textures[state][initialAngle] = [];
+        textureLoader.load(filePath,
+            (texture) => {
+                texture.magFilter = THREE.LinearFilter;
+                texture.minFilter = THREE.LinearFilter;
+                textures[state][initialAngle][initialFrame] = texture;
+                // Start background loading of all other textures
+                setTimeout(() => loadAllTexturesBackground(states, basePath), 0);
+                resolve();
+            },
+            undefined,
+            (err) => {
+                console.error(`Failed to load initial texture: ${filePath}`, err);
+                resolve(); // Still resolve so game can start
+            }
+        );
+    });
+}
 
-        if (!baseFileNamePart) {
-            console.error(`Missing filename prefix configuration for state: ${state}`);
-            continue;
-        }
-
+// Background loader for all textures
+function loadAllTexturesBackground(states, basePath) {
+    for (const [state, baseFileNamePart] of Object.entries(states)) {
+        if (!textures[state]) textures[state] = {};
         for (const angle of ANGLES) {
-            textures[state][angle] = [];
+            if (!textures[state][angle]) textures[state][angle] = [];
             const angleString = String(angle).replace('.', '_');
-            
-            // Conditionally add _0 for directory name
             const angleDirName = angleString.includes('_') ? angleString : `${angleString}_0`;
-            const anglePath = `${statePath}angle_${angleDirName}/`; // Use angleDirName
-
+            const anglePath = `${basePath}${state}/angle_${angleDirName}/`;
             for (let frame = 0; frame < FRAME_COUNT; frame++) {
+                // Skip if already loaded
+                if (textures[state][angle][frame]) continue;
                 const framePadded = String(frame).padStart(4, '0');
-                
-                // Conditionally add the _0 based on whether angleString has an underscore
                 const anglePartInFilename = angleString.includes('_') ? angleString : `${angleString}_0`;
-                
                 const fileName = `${baseFileNamePart}_angle_${anglePartInFilename}_${framePadded}.webp`;
                 const filePath = anglePath + fileName;
-
-                const promise = new Promise((resolve, reject) => {
-                    // TextureLoader handles paths relative to the root or /public
-                    textureLoader.load(filePath,
-                        (texture) => {
-                            texture.magFilter = THREE.LinearFilter; // Smoother look
-                            texture.minFilter = THREE.LinearFilter;
-                            textures[state][angle][frame] = texture;
-                            resolve(texture);
-                        },
-                        undefined,
-                        (err) => {
-                            console.error(`Failed to load texture: ${filePath}`, err);
-                            reject(new Error(`Failed to load texture: ${filePath}`));
-                        }
-                    );
-                });
-                promises.push(promise);
+                textureLoader.load(filePath,
+                    (texture) => {
+                        texture.magFilter = THREE.LinearFilter;
+                        texture.minFilter = THREE.LinearFilter;
+                        textures[state][angle][frame] = texture;
+                    },
+                    undefined,
+                    (err) => {
+                        // Ignore errors in background loading
+                    }
+                );
             }
         }
     }
-    await Promise.all(promises);
 }
 
 async function loadTreeTextures() {
@@ -1689,6 +2033,31 @@ function onKeyDown(event) {
         toggleFullscreen();
     }
     // --- End Fullscreen Toggle ---
+
+    // --- Gun Equip/Unequip ---
+    if (event.code === 'Digit2') {
+        hasGun = true;
+        character.state = 'idle';
+        character.currentFrame = 0;
+        character.frameTime = 0;
+        isAiming = false;
+        isShooting = false;
+        isGunShootQueued = false;
+        CAMERA_OFFSET.z = 1.8;
+        crosshair.style.display = 'none';
+    }
+    if (event.code === 'Digit1') {
+        hasGun = false;
+        character.state = 'idle';
+        character.currentFrame = 0;
+        character.frameTime = 0;
+        isAiming = false;
+        isShooting = false;
+        isGunShootQueued = false;
+        CAMERA_OFFSET.z = 1.8;
+        crosshair.style.display = 'none';
+    }
+    // ... existing code ...
 }
 
 function onKeyUp(event) {
@@ -1707,22 +2076,78 @@ function onMouseMove(event) {
 
 // Add MouseDown handler
 function onMouseDown(event) {
-    // Check for left mouse button (button 0)
-    if (event.button === 0 && playerControlMode === 'character' && character.isOnGround && !character.isPunching && character.state !== 'jump') {
+    if (hasGun && playerControlMode === 'character') {
+        if (event.button === 2) { // Right click: aim
+            isAiming = true;
+            crosshair.style.display = 'block';
+            CAMERA_OFFSET.z = 1.0;
+            // Freeze vertical angle
+            if (aimVerticalAngle === null) aimVerticalAngle = cameraVerticalAngle;
+            event.preventDefault();
+            return;
+        }
+        if (event.button === 0) { // Left click: shoot
+            isLeftMouseDown = true;
+            isGunShootQueued = true;
+            isShooting = true;
+            character.state = 'gunshoot';
+            character.currentFrame = 0;
+            character.frameTime = 0;
+            event.preventDefault();
+            return;
+        }
+    }
+    // Punch logic (if not in gun mode)
+    if (event.button === 0 && playerControlMode === 'character' && character.isOnGround && !character.isPunching && character.state !== 'jump' && !hasGun) {
         character.state = 'punch';
         character.isPunching = true;
-        character.punchedThisAction = false; // Reset hit flag for this punch
+        character.punchedThisAction = false;
         character.currentFrame = 0;
         character.frameTime = 0;
-        // Stop any existing horizontal movement when punch starts
         character.velocity.x = 0;
         character.velocity.z = 0;
     }
 }
 
+window.addEventListener('mouseup', function(event) {
+    if (event.button === 2 && hasGun && playerControlMode === 'character') {
+        isAiming = false;
+        crosshair.style.display = 'none';
+        CAMERA_OFFSET.z = 1.8;
+        // Restore vertical angle
+        if (aimVerticalAngle !== null) {
+            cameraVerticalAngle = aimVerticalAngle;
+            targetCameraVerticalAngle = aimVerticalAngle;
+            aimVerticalAngle = null;
+        }
+        if (character.isOnGround && !character.isPunching && character.state !== 'jump') {
+            if (keyboard['KeyW'] || keyboard['KeyS'] || keyboard['KeyA'] || keyboard['KeyD']) {
+                character.state = keyboard['ShiftLeft'] ? 'rungun' : 'walkgun';
+            } else {
+                character.state = 'idlegun';
+            }
+        }
+    }
+    if (event.button === 0 && hasGun && playerControlMode === 'character') {
+        isLeftMouseDown = false;
+    }
+});
+
 // --- Update Logic ---
 function updateCharacter(deltaTime) {
     if (!characterSprite || !texturesLoaded) return;
+
+    // --- Always update facing while aiming ---
+    if (hasGun && isAiming) {
+        const camDir = new THREE.Vector3();
+        camera.getWorldDirection(camDir);
+        camDir.y = 0;
+        if (camDir.lengthSq() > 0.001) {
+            camDir.normalize();
+            character.forward.copy(camDir);
+            character.lastMovementForward.copy(camDir);
+        }
+    }
 
     // Apply Gravity (unless punching on ground)
     if (!character.isOnGround) {
@@ -1747,11 +2172,24 @@ function updateCharacter(deltaTime) {
     }
 
     // 2. Update State (only if on ground and not punching/jumping)
-    if (character.isOnGround && !character.isPunching && character.state !== 'jump') {
+    if (character.isOnGround && !character.isPunching && character.state !== 'jump' && !hasGun) {
         if (wantsToMoveHorizontally) {
             character.state = wantsToRun ? 'run' : 'walk';
         } else {
             character.state = 'idle';
+        }
+    }
+
+    // Gun movement state logic
+    if (hasGun && character.isOnGround && !character.isPunching && character.state !== 'jump') {
+        if (isGunShootQueued) {
+            character.state = 'gunshoot';
+        } else if (isAiming) {
+            character.state = 'gunaim';
+        } else if (wantsToMoveHorizontally) {
+            character.state = wantsToRun ? 'rungun' : 'walkgun';
+        } else {
+            character.state = 'idlegun';
         }
     }
 
@@ -1932,15 +2370,41 @@ function updateCharacter(deltaTime) {
         case 'walk': currentFrameDuration = WALK_FRAME_DURATION; break;
         case 'jump': currentFrameDuration = JUMP_FRAME_DURATION; break;
         case 'punch': currentFrameDuration = PUNCH_FRAME_DURATION; break;
+        case 'gunshoot': currentFrameDuration = PUNCH_FRAME_DURATION * 0.7; break; // Make gunshoot a bit faster
         default: currentFrameDuration = IDLE_FRAME_DURATION; break;
     }
-
     if (character.frameTime >= currentFrameDuration) {
         character.frameTime -= currentFrameDuration;
         const previousFrame = character.currentFrame;
         const nextFrame = (character.currentFrame + 1) % FRAME_COUNT;
-        character.currentFrame = nextFrame; // Update frame first
-
+        // --- Gunshoot: trigger PEW effect at the START of the animation (frame 0) ---
+        if (character.state === 'gunshoot' && nextFrame === 1) {
+            createPewEffect(character.position, character.forward);
+        }
+        character.currentFrame = nextFrame;
+        // --- Gunshoot animation end: allow rapid fire ---
+        if (character.state === 'gunshoot' && nextFrame === 0) {
+            if (isLeftMouseDown) {
+                // Rapid fire: immediately start another shot
+                isGunShootQueued = true;
+                isShooting = true;
+                character.state = 'gunshoot';
+                character.currentFrame = 0;
+                character.frameTime = 0;
+            } else {
+                isGunShootQueued = false;
+                isShooting = false;
+                if (hasGun && isAiming) {
+                    character.state = 'gunaim';
+                } else if (hasGun) {
+                    if (wantsToMoveHorizontally) {
+                        character.state = wantsToRun ? 'rungun' : 'walkgun';
+                    } else {
+                        character.state = 'idlegun';
+                    }
+                }
+            }
+        }
         // --- Punch Hit Detection --- (On specific frame)
         if (character.state === 'punch' && previousFrame === PUNCH_DAMAGE_FRAME -1 && !character.punchedThisAction) {
             const checkOffset = character.forward.clone().multiplyScalar(PUNCH_HIT_RANGE * 0.5); // Check slightly in front
@@ -1980,7 +2444,16 @@ function updateCharacter(deltaTime) {
     }
 
     // 8. Update Sprite Material
-    const currentAnimationTextures = textures[character.state]?.[character.currentAngle];
+    // Choose correct animation set based on hasGun, isAiming, isShooting
+    let animState = character.state;
+    if (hasGun) {
+        if (character.state === 'gunshoot') animState = 'gunshoot';
+        else if (character.state === 'gunaim') animState = 'gunaim';
+        else if (character.state === 'idle') animState = 'idlegun';
+        else if (character.state === 'walk') animState = 'walkgun';
+        else if (character.state === 'run') animState = 'rungun';
+    }
+    const currentAnimationTextures = textures[animState]?.[character.currentAngle];
     if (currentAnimationTextures && currentAnimationTextures[character.currentFrame]) {
         characterSprite.material.map = currentAnimationTextures[character.currentFrame];
         characterSprite.material.needsUpdate = true;
@@ -1996,6 +2469,18 @@ function updateCharacter(deltaTime) {
     // 9. Billboard the sprite
     const lookAtTarget = new THREE.Vector3(camera.position.x, characterSprite.position.y, camera.position.z);
     characterSprite.lookAt(lookAtTarget);
+
+    // In updateCharacter, before angle calculation (after movement/collision logic):
+    if (hasGun && isAiming) {
+        const camDir = new THREE.Vector3();
+        camera.getWorldDirection(camDir);
+        camDir.y = 0;
+        if (camDir.lengthSq() > 0.001) {
+            camDir.normalize();
+            character.forward.copy(camDir);
+            character.lastMovementForward.copy(camDir);
+        }
+    }
 }
 
 function updateTrees(deltaTime) {
@@ -2436,7 +2921,7 @@ function updateNpcs(deltaTime) {
                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5); // Less impulse
                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
                      npc.timeUntilNextDecision = 10; 
-                     createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
+                     createPowEffect(npc.position);
                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
                      npc.sprite.position.copy(npc.position);
                  }
@@ -2458,7 +2943,7 @@ function updateNpcs(deltaTime) {
                       npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
                       npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
                       npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
+                      createPowEffect(npc.position);
                       npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
                       npc.sprite.position.copy(npc.position);
                   }
@@ -2480,7 +2965,7 @@ function updateNpcs(deltaTime) {
                       npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
                       npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
                       npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
+                      createPowEffect(npc.position);
                       npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
                       npc.sprite.position.copy(npc.position);
                   }
@@ -2502,7 +2987,7 @@ function updateNpcs(deltaTime) {
                       npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
                       npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
                       npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
+                      createPowEffect(npc.position);
                       npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
                       npc.sprite.position.copy(npc.position);
                   }
@@ -2524,7 +3009,7 @@ function updateNpcs(deltaTime) {
                       npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
                       npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
                       npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
+                      createPowEffect(npc.position);
                       npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
                       npc.sprite.position.copy(npc.position);
                   }
@@ -2546,7 +3031,7 @@ function updateNpcs(deltaTime) {
                       npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
                       npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
                       npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
+                      createPowEffect(npc.position);
                       npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
                       npc.sprite.position.copy(npc.position);
                   }
@@ -2568,7 +3053,7 @@ function updateNpcs(deltaTime) {
                       npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
                       npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
                       npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
+                      createPowEffect(npc.position);
                       npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
                       npc.sprite.position.copy(npc.position);
                   }
@@ -2831,6 +3316,15 @@ function animate() {
     }
 
     composer.render(); 
+
+    // In the animate() function, update crosshair position for aiming:
+    if (crosshair) {
+        if (hasGun && isAiming) {
+            crosshair.style.top = '43%'; // Move to 40% for better alignment
+        } else {
+            crosshair.style.top = '50%';
+        }
+    }
 }
 
 // --- Start ---
@@ -2985,3 +3479,74 @@ function applyCrtFilterPreset() {
     console.log(`Applied CRT Preset: ${preset.name}`);
 }
 // --- End Apply CRT Filter Preset Function ---
+
+let hasGun = false; // Track if the player has the gun equipped
+let isAiming = false; // Track if the player is aiming
+let isShooting = false; // Track if the player is shooting
+
+// Add crosshair element to DOM if not present
+let crosshair = document.getElementById('crosshair');
+if (!crosshair) {
+    crosshair = document.createElement('div');
+    crosshair.id = 'crosshair';
+    crosshair.style.position = 'fixed';
+    crosshair.style.left = '50%';
+    crosshair.style.top = '50%';
+    crosshair.style.transform = 'translate(-50%, -50%)';
+    crosshair.style.width = '32px';
+    crosshair.style.height = '32px';
+    crosshair.style.pointerEvents = 'none';
+    crosshair.style.zIndex = '1000';
+    crosshair.style.display = 'none';
+    crosshair.innerHTML = `<svg width="32" height="32"><circle cx="16" cy="16" r="2" fill="white"/><line x1="16" y1="0" x2="16" y2="32" stroke="white" stroke-width="2"/><line x1="0" y1="16" x2="32" y2="16" stroke="white" stroke-width="2"/></svg>`;
+    document.body.appendChild(crosshair);
+}
+
+// Add a new flag to track if a gunshot animation is playing
+let isGunShootQueued = false;
+
+// Move the crosshair slightly higher while aiming:
+if (crosshair) {
+    if (hasGun && isAiming) {
+        crosshair.style.top = '45%'; // Move up from 50% to 45%
+    } else {
+        crosshair.style.top = '50%'; // Default position
+    }
+}
+
+// Add createPewEffect function:
+function createPewEffect(position, facingDirection) {
+    if (!pewTexture) {
+        console.warn("Pew texture not loaded, cannot create effect.");
+        return;
+    }
+    // Calculate right vector from facingDirection
+    const right = new THREE.Vector3().crossVectors(facingDirection, new THREE.Vector3(0, 1, 0)).normalize();
+    // Offset to the right of the player
+    const baseOffset = 1.0; // Slightly less than before
+    // Add random jitter for rapid fire
+    const jitter = (Math.random() - 0.5) * 0.5; // Keep some randomness
+    const offset = right.clone().multiplyScalar(baseOffset + jitter);
+    // Place effect at character's position + offset, above ground
+    const pewPos = position.clone().add(offset);
+    pewPos.y += 0.8 + (Math.random() - 0.5) * 0.2; // Lower than before, still with jitter
+    const material = new THREE.MeshBasicMaterial({
+        map: pewTexture.clone(),
+        transparent: true,
+        alphaTest: 0.1,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        opacity: 1.0
+    });
+    const geometry = new THREE.PlaneGeometry(POW_EFFECT_SCALE * 1.1, POW_EFFECT_SCALE * 1.1); // Smaller scale
+    const sprite = new THREE.Mesh(geometry, material);
+    sprite.position.copy(pewPos);
+    // Random initial tilt
+    sprite.rotation.z = (Math.random() - 0.5) * 0.5;
+    scene.add(sprite);
+    activePowEffects.push({
+        sprite: sprite,
+        lifetime: POW_EFFECT_DURATION,
+        timer: 0
+    });
+}

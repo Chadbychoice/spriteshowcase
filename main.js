@@ -20,6 +20,9 @@ let crtPass; // Add variable for CRT pass
 let isCrtEnabled = false; // State for CRT effect
 let isLeftMouseDown = false;
 let aimVerticalAngle = null;
+let crosshairVerticalOffset = 0; // <-- Add this line to define and initialize
+let activePoofEffects = [];
+const POOF_LIFETIME = 0.7;
 
 // --- Configuration ---
 const SPRITE_PATH = '/sprites/';
@@ -309,6 +312,8 @@ let pewTexture = null; // Texture for the PEW effect (comic gun effect)
 let activePowEffects = []; // Array for managing active POW sprites
 let buildingTexture = null; // Texture for skyscrapers
 let fenceTexture = null; // Texture for the fence
+let muzzleTexture = null; // Texture for the muzzle flash
+let poofTexture = null; // <-- Move poofTexture declaration here
 
 // --- Loading State --- (Flags)
 let texturesLoaded = false;
@@ -1038,6 +1043,10 @@ function init() {
     bangTexture = textureLoader.load('/sprites/effects/bang.webp');
     // Load PEW Texture
     pewTexture = textureLoader.load('/sprites/effects/pew.webp');
+    // Load MUZZLE Texture
+    muzzleTexture = textureLoader.load('/sprites/effects/muzzle.webp');
+    // Load POOF Texture
+    poofTexture = textureLoader.load('/sprites/effects/poof.webp');
 
     // Load Character Textures
     loadAllTextures().then(() => {
@@ -1584,7 +1593,8 @@ function createCharacterSprite() {
         side: THREE.DoubleSide
     });
 
-    const geometry = new THREE.PlaneGeometry(SPRITE_SCALE, SPRITE_SCALE);
+    // Create geometry with size 1x1 (scaling is handled dynamically)
+    const geometry = new THREE.PlaneGeometry(1, 1);
     characterSprite = new THREE.Mesh(geometry, material);
     characterSprite.position.copy(character.position);
     scene.add(characterSprite);
@@ -2072,6 +2082,13 @@ function onMouseMove(event) {
 
     // Remove clamping as the vertical angle is now fixed
     // cameraVerticalAngle = Math.max(-Math.PI / 4, Math.min(Math.PI / 3, cameraVerticalAngle)); 
+
+    if (hasGun && isAiming) {
+        crosshairVerticalOffset += event.movementY * MOUSE_SENSITIVITY; // Use same sensitivity as horizontal
+        crosshairVerticalOffset = Math.max(-0.4, Math.min(0.4, crosshairVerticalOffset)); // Keep increased range
+    } else {
+        crosshairVerticalOffset = 0;
+    }
 }
 
 // Add MouseDown handler
@@ -2114,6 +2131,7 @@ window.addEventListener('mouseup', function(event) {
         isAiming = false;
         crosshair.style.display = 'none';
         CAMERA_OFFSET.z = 1.8;
+        crosshairVerticalOffset = 0; // Reset on aim end
         // Restore vertical angle
         if (aimVerticalAngle !== null) {
             cameraVerticalAngle = aimVerticalAngle;
@@ -2367,7 +2385,9 @@ function updateCharacter(deltaTime) {
     let currentFrameDuration;
     switch (character.state) {
         case 'run': currentFrameDuration = RUN_FRAME_DURATION; break;
+        case 'rungun': currentFrameDuration = RUN_FRAME_DURATION; break;
         case 'walk': currentFrameDuration = WALK_FRAME_DURATION; break;
+        case 'walkgun': currentFrameDuration = WALK_FRAME_DURATION; break;
         case 'jump': currentFrameDuration = JUMP_FRAME_DURATION; break;
         case 'punch': currentFrameDuration = PUNCH_FRAME_DURATION; break;
         case 'gunshoot': currentFrameDuration = PUNCH_FRAME_DURATION * 0.7; break; // Make gunshoot a bit faster
@@ -2380,6 +2400,36 @@ function updateCharacter(deltaTime) {
         // --- Gunshoot: trigger PEW effect at the START of the animation (frame 0) ---
         if (character.state === 'gunshoot' && nextFrame === 1) {
             createPewEffect(character.position, character.forward);
+            createMuzzleFlashEffect(character.position, character.forward);
+            // --- Spawn projectile ---
+            let from = character.position.clone();
+            let dir;
+            if (hasGun && isAiming) {
+                from.y += SPRITE_SCALE * 0.45; // Chest height (aimed)
+                // Ray from camera through crosshair
+                // Calculate world direction from camera with crosshairVerticalOffset
+                const camDir = new THREE.Vector3();
+                camera.getWorldDirection(camDir);
+                // Apply vertical offset (crosshairVerticalOffset is -0.4 to 0.4)
+                // We'll rotate camDir up/down by a small angle
+                const up = new THREE.Vector3(0, 1, 0);
+                const right = new THREE.Vector3().crossVectors(camDir, up).normalize();
+                const verticalAngle = -crosshairVerticalOffset * 0.4; // Increased factor for higher/lower shots
+                dir = camDir.clone().applyAxisAngle(right, verticalAngle).normalize();
+            } else {
+                from.y += SPRITE_SCALE * 0.32; // Lower height for non-aimed shots
+                // Add spread: random horizontal and vertical angle (±5 degrees)
+                const spreadH = (Math.random() - 0.5) * (Math.PI / 18); // ±10°/2 = ±5°
+                const spreadV = (Math.random() - 0.5) * (Math.PI / 36); // ±5°/2 = ±2.5°
+                dir = character.forward.clone();
+                // Apply horizontal spread (rotate around Y axis)
+                dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), spreadH);
+                // Apply vertical spread (rotate around right axis)
+                const right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 1, 0)).normalize();
+                dir.applyAxisAngle(right, spreadV);
+                dir.normalize();
+            }
+            spawnProjectile(from, dir);
         }
         character.currentFrame = nextFrame;
         // --- Gunshoot animation end: allow rapid fire ---
@@ -2465,6 +2515,21 @@ function updateCharacter(deltaTime) {
              characterSprite.material.needsUpdate = true;
         }
     }
+
+    // --- GUN SPRITE SCALE LOGIC ---
+    // Make gun states even larger (18% bigger)
+    const gunStates = ['idlegun', 'walkgun', 'rungun', 'gunaim', 'gunshoot'];
+    let yOffset = 0;
+    if (gunStates.includes(animState)) {
+        characterSprite.scale.set(SPRITE_SCALE * 1.18, SPRITE_SCALE * 1.18, 1);
+        yOffset = SPRITE_SCALE * 0.02;
+    } else {
+        characterSprite.scale.set(SPRITE_SCALE, SPRITE_SCALE, 1);
+        yOffset = 0;
+    }
+    // Adjust Y position so feet stay on ground
+    characterSprite.position.copy(character.position);
+    characterSprite.position.y += yOffset;
 
     // 9. Billboard the sprite
     const lookAtTarget = new THREE.Vector3(camera.position.x, characterSprite.position.y, camera.position.z);
@@ -2859,9 +2924,9 @@ function updateNpcs(deltaTime) {
                 npc.frameTime = 0;
                 npc.timeUntilNextDecision = 1.0 + Math.random() * 2.0; // Recover quickly
             }
-            // Remove the redundant billboarding from here
-            // const lookAtTarget = new THREE.Vector3(camera.position.x, npc.sprite.position.y, camera.position.z);
-            // npc.sprite.lookAt(lookAtTarget);
+            // Ensure billboarding even in hit state
+            const lookAtTarget = new THREE.Vector3(camera.position.x, npc.sprite.position.y, camera.position.z);
+            npc.sprite.lookAt(lookAtTarget);
             continue; // Skip normal logic if hit
         }
 
@@ -3309,6 +3374,7 @@ function animate() {
     
     // Update Pow Effects
     updatePowEffects(deltaTime); // Add call to update POW effects
+    updatePoofEffects(deltaTime); // <-- Add this line to update poof effects every frame
 
     // Update water time uniform for wave animation
     if (window.water) {
@@ -3320,11 +3386,18 @@ function animate() {
     // In the animate() function, update crosshair position for aiming:
     if (crosshair) {
         if (hasGun && isAiming) {
-            crosshair.style.top = '43%'; // Move to 40% for better alignment
+            // Move to 53% for better alignment, plus vertical offset
+            const baseTop = 53;
+            const offset = crosshairVerticalOffset * 10; // -2 to +2 percent
+            crosshair.style.top = `${baseTop + offset}%`;
         } else {
             crosshair.style.top = '50%';
         }
     }
+
+    // --- In animate(), update projectiles ---
+    updateProjectiles(deltaTime);
+    updateBullethitEffects(deltaTime); // <-- Ensure this is here, after deltaTime is defined
 }
 
 // --- Start ---
@@ -3550,3 +3623,313 @@ function createPewEffect(position, facingDirection) {
         timer: 0
     });
 }
+
+function createMuzzleFlashEffect(position, facingDirection) {
+    if (!muzzleTexture) {
+        console.warn("Muzzle texture not loaded, cannot create effect.");
+        return;
+    }
+    // Calculate muzzle position: in front of and slightly above the character
+    const forward = facingDirection.clone().normalize();
+    const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+    const muzzleOffset = forward.clone().multiplyScalar(0.7).add(right.clone().multiplyScalar(0.18));
+    const muzzlePos = position.clone().add(muzzleOffset);
+    muzzlePos.y += 0.40; // Lower in all cases
+    const material = new THREE.MeshBasicMaterial({
+        map: muzzleTexture.clone(),
+        transparent: true,
+        alphaTest: 0.1,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        opacity: 1.0 // Less transparent (fully opaque)
+    });
+    const geometry = new THREE.PlaneGeometry(0.45, 0.32); // Small, wide flash
+    const sprite = new THREE.Mesh(geometry, material);
+    sprite.position.copy(muzzlePos);
+    // Random initial tilt
+    sprite.rotation.z = (Math.random() - 0.5) * 0.2;
+    scene.add(sprite);
+    activePowEffects.push({
+        sprite: sprite,
+        lifetime: 0.08, // Very short flash
+        timer: 0
+    });
+}
+
+// --- Projectile System ---
+let projectiles = [];
+const PROJECTILE_SPEED = 18.0;
+const PROJECTILE_LIFETIME = 2.0;
+const PROJECTILE_SCALE = 0.25;
+
+
+
+// --- Bullet Sprite System ---
+const BULLET_UUID = '1c30f9d5-f412-4001-8aa5-2ca3ea0f040f';
+const BULLET_ANGLES = Array.from({ length: 64 }, (_, i) => i * 5.625);
+let bulletTextures = {};
+
+function loadBulletTextures() {
+    for (const angle of BULLET_ANGLES) {
+        const angleFloor = Math.floor(angle);
+        const decimalPartTimes10 = (angle - angleFloor) * 10;
+        let angleDecimal;
+        if (Math.abs(decimalPartTimes10 - 2.5) < 0.01) {
+            angleDecimal = 2;
+        } else if (Math.abs(decimalPartTimes10 - 7.5) < 0.01) {
+            angleDecimal = 8;
+        } else {
+            angleDecimal = Math.round(decimalPartTimes10);
+        }
+        const angleString = `${angleFloor}_${angleDecimal}`;
+        const fileName = `${BULLET_UUID}_angle_${angleString}_0000.webp`;
+        const filePath = `/sprites/bullet/${fileName}`;
+        bulletTextures[angle] = textureLoader.load(filePath);
+    }
+}
+loadBulletTextures();
+
+// --- Update spawnProjectile to use bullet sprite based on character/camera angle ---
+function spawnProjectile(from, direction) {
+    // Calculate angle between character's forward and camera's forward (XZ plane)
+    const charForward = character.forward.clone();
+    charForward.y = 0; charForward.normalize();
+    const camForward = new THREE.Vector3();
+    camera.getWorldDirection(camForward); camForward.y = 0; camForward.normalize();
+    // Angle from character forward to camera forward (0 = away from camera, 180 = toward camera)
+    let angleRad = Math.atan2(
+        charForward.z * camForward.x - charForward.x * camForward.z,
+        charForward.x * camForward.x + charForward.z * camForward.z
+    );
+    let angleDeg = (THREE.MathUtils.radToDeg(angleRad) + 360) % 360;
+    // 0° = back, 180° = front, 90/270 = side
+    const quantizedIndex = Math.round(angleDeg / 5.625) % 64;
+    const spriteAngle = BULLET_ANGLES[quantizedIndex];
+    const bulletTexture = bulletTextures[spriteAngle] || null;
+    const geometry = new THREE.PlaneGeometry(PROJECTILE_SCALE * 2, PROJECTILE_SCALE);
+    const material = new THREE.MeshBasicMaterial({
+        map: bulletTexture,
+        transparent: true,
+        alphaTest: 0.1,
+        side: THREE.DoubleSide
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.copy(from);
+    scene.add(mesh);
+    projectiles.push({
+        mesh,
+        velocity: direction.clone().normalize().multiplyScalar(PROJECTILE_SPEED),
+        lifetime: PROJECTILE_LIFETIME
+    });
+}
+
+
+
+// --- Load bullethit effect texture ---
+let bullethitTexture = null;
+bullethitTexture = textureLoader.load('/sprites/effects/bullethit.webp');
+
+// --- Bullethit Effect System ---
+let activeBullethitEffects = [];
+const BULLETHIT_LIFETIME = 0.7;
+const BULLETHIT_GRAVITY = 4.0; // Faster fall
+
+function spawnBullethitEffect(position) {
+    if (!bullethitTexture) return;
+    const geometry = new THREE.PlaneGeometry(0.32, 0.32);
+    const material = new THREE.MeshBasicMaterial({
+        map: bullethitTexture,
+        transparent: true,
+        alphaTest: 0.1,
+        side: THREE.DoubleSide
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(0, 0, 0); // Centered in group
+    // Random initial rotation
+    mesh.rotation.z = Math.random() * Math.PI * 2;
+    // Random rotation speed (faster)
+    const rotSpeed = (Math.random() - 0.5) * 10.0; // -5 to +5 radians/sec
+    // Initial downward velocity (faster)
+    const velocity = new THREE.Vector3(0, -1.7, 0); // Falls down
+    // Billboard group
+    const group = new THREE.Group();
+    group.position.copy(position);
+    group.add(mesh);
+    scene.add(group);
+    activeBullethitEffects.push({
+        group,
+        mesh,
+        velocity,
+        rotSpeed,
+        lifetime: BULLETHIT_LIFETIME
+    });
+}
+
+function updateBullethitEffects(deltaTime) {
+    for (let i = activeBullethitEffects.length - 1; i >= 0; i--) {
+        const e = activeBullethitEffects[i];
+        e.group.position.add(e.velocity.clone().multiplyScalar(deltaTime));
+        e.velocity.y -= BULLETHIT_GRAVITY * deltaTime;
+        e.mesh.rotation.z += e.rotSpeed * deltaTime;
+        e.lifetime -= deltaTime;
+        // Billboard the group to camera (Y axis only for comic effect)
+        const camPos = camera.position.clone();
+        camPos.y = e.group.position.y; // Only rotate around Y
+        e.group.lookAt(camPos);
+        if (e.lifetime <= 0) {
+            scene.remove(e.group);
+            activeBullethitEffects.splice(i, 1);
+        }
+    }
+}
+
+// --- Update updateProjectiles: add collision and bullethit effect ---
+function updateProjectiles(deltaTime) {
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+        const p = projectiles[i];
+        const prevPos = p.mesh.position.clone();
+        p.mesh.position.add(p.velocity.clone().multiplyScalar(deltaTime));
+        p.lifetime -= deltaTime;
+        // --- Collision detection ---
+        let hit = false;
+        // 1. Ground (Y <= ground level)
+        if (p.mesh.position.y <= SPRITE_SCALE / 2 - 0.075) {
+            hit = true;
+        }
+        // 2. Trees
+        for (const treePos of treePositions) {
+            if (p.mesh.position.distanceToSquared(treePos) < 0.7 * 0.7) {
+                hit = true;
+                break;
+            }
+        }
+        // 3. Cars
+        for (const carObj of allCars) {
+            if (carObj.sprite && p.mesh.position.distanceToSquared(carObj.position) < 1.2 * 1.2) {
+                hit = true;
+                break;
+            }
+        }
+        // 4. NPCs
+        for (const npc of npcs) {
+            if (npc.sprite && p.mesh.position.distanceToSquared(npc.position) < 0.7 * 0.7) {
+                // --- Launch NPC in a comical arc ---
+                const away = npc.position.clone().sub(p.mesh.position).normalize();
+                away.y = 0;
+                if (away.lengthSq() < 0.01) away.set(1, 0, 0); // fallback
+                npc.velocity.copy(away.multiplyScalar(12.0)); // strong horizontal impulse
+                npc.velocity.y = 10.0 + Math.random() * 3.0; // strong upward
+                npc.state = 'hit';
+                npc.timeUntilNextDecision = 10;
+                // --- Spawn 3 poof effects at hit position ---
+                for (let k = 0; k < 3; k++) {
+                    spawnPoofEffect(p.mesh.position, away);
+                }
+                hit = true;
+                break;
+            }
+        }
+        // 5. Buildings (skyscrapers) - use isCollidingWithSkyscraper
+        if (isCollidingWithSkyscraper(p.mesh.position, 0.16)) {
+            hit = true;
+        }
+        // 6. Island boundary (walls/fence)
+        if (
+            p.mesh.position.x < -ISLAND_WIDTH / 2 + 0.2 ||
+            p.mesh.position.x > ISLAND_WIDTH / 2 - 0.2 ||
+            p.mesh.position.z < -ISLAND_LENGTH / 2 + 0.2 ||
+            p.mesh.position.z > ISLAND_LENGTH / 2 - 0.2
+        ) {
+            hit = true;
+        }
+        // Billboard to camera only
+        p.mesh.lookAt(camera.position);
+        if (hit || p.lifetime <= 0) {
+            spawnBullethitEffect(p.mesh.position);
+            scene.remove(p.mesh);
+            projectiles.splice(i, 1);
+        }
+    }
+}
+
+
+
+// --- Load poof effect texture ---
+poofTexture = textureLoader.load('/sprites/effects/poof.webp');
+
+// --- Poof Effect System ---
+
+function spawnPoofEffect(position, baseDir) {
+    if (!poofTexture) return;
+    // Make poof bigger
+    const geometry = new THREE.PlaneGeometry(1.2, 1.2); // Increased from 0.6, 0.6
+    const material = new THREE.MeshBasicMaterial({
+        map: poofTexture,
+        transparent: true,
+        alphaTest: 0.1,
+        side: THREE.DoubleSide,
+        opacity: 1.0
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(0, 0, 0);
+    // Random initial rotation
+    mesh.rotation.z = Math.random() * Math.PI * 2;
+    // Billboard group
+    const group = new THREE.Group();
+    group.position.copy(position);
+    group.add(mesh);
+    scene.add(group);
+    // Randomize direction and speed in any XZ direction
+    const randomAngle = Math.random() * Math.PI * 2;
+    const dir = new THREE.Vector3(Math.cos(randomAngle), 0, Math.sin(randomAngle)).normalize();
+    const velocity = dir.multiplyScalar(1.5 + Math.random() * 1.2);
+    velocity.y = 1.2 + Math.random() * 0.7;
+    activePoofEffects.push({
+        group,
+        mesh,
+        velocity,
+        lifetime: POOF_LIFETIME
+    });
+}
+
+function updatePoofEffects(deltaTime) {
+    for (let i = activePoofEffects.length - 1; i >= 0; i--) {
+        const e = activePoofEffects[i];
+        e.group.position.add(e.velocity.clone().multiplyScalar(deltaTime));
+        e.velocity.y -= 3.5 * deltaTime; // gravity
+        e.lifetime -= deltaTime;
+        // Fade out
+        e.mesh.material.opacity = Math.max(0, e.lifetime / POOF_LIFETIME);
+        // Billboard the group to camera (Y axis only)
+        const camPos = camera.position.clone();
+        camPos.y = e.group.position.y;
+        e.group.lookAt(camPos);
+        if (e.lifetime <= 0) {
+            scene.remove(e.group);
+            activePoofEffects.splice(i, 1);
+        }
+    }
+}
+
+// --- NPC bullet hit logic ---
+// In updateProjectiles, when a bullet hits an NPC:
+// ... existing code ...
+        // 4. NPCs
+        for (const npc of npcs) {
+            if (npc.sprite && p.mesh.position.distanceToSquared(npc.position) < 0.7 * 0.7) {
+                // --- Launch NPC in a comical arc ---
+                const away = npc.position.clone().sub(p.mesh.position).normalize();
+                away.y = 0;
+                if (away.lengthSq() < 0.01) away.set(1, 0, 0); // fallback
+                npc.velocity.copy(away.multiplyScalar(12.0)); // strong horizontal impulse
+                npc.velocity.y = 10.0 + Math.random() * 3.0; // strong upward
+                npc.state = 'hit';
+                npc.timeUntilNextDecision = 10;
+                // --- Spawn 3 poof effects at hit position ---
+                for (let k = 0; k < 3; k++) {
+                    spawnPoofEffect(p.mesh.position, away);
+                }
+                hit = true;
+                break;
+            }
+        }

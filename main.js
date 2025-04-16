@@ -1131,6 +1131,184 @@ function init() {
     });
     // Add mousedown listener for punching
     window.addEventListener('mousedown', onMouseDown);
+
+    // --- MOBILE CONTROLS ---
+    function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    let mobileControls = null;
+    if (isMobile()) {
+        mobileControls = document.createElement('div');
+        mobileControls.id = 'mobile-controls';
+        mobileControls.style.position = 'fixed';
+        mobileControls.style.left = '0';
+        mobileControls.style.top = '0';
+        mobileControls.style.width = '100vw';
+        mobileControls.style.height = '100vh';
+        mobileControls.style.zIndex = '2000';
+        mobileControls.style.pointerEvents = 'none';
+        document.body.appendChild(mobileControls);
+
+        // --- Virtual Joystick ---
+        const stickOuter = document.createElement('div');
+        stickOuter.style.position = 'absolute';
+        stickOuter.style.left = '6vw';
+        stickOuter.style.bottom = '10vh';
+        stickOuter.style.width = '22vw';
+        stickOuter.style.height = '22vw';
+        stickOuter.style.background = 'rgba(255,255,255,0.08)';
+        stickOuter.style.borderRadius = '50%';
+        stickOuter.style.pointerEvents = 'auto';
+        stickOuter.style.touchAction = 'none';
+        mobileControls.appendChild(stickOuter);
+
+        const stickInner = document.createElement('div');
+        stickInner.style.position = 'absolute';
+        stickInner.style.left = '8vw';
+        stickInner.style.top = '8vw';
+        stickInner.style.width = '6vw';
+        stickInner.style.height = '6vw';
+        stickInner.style.background = 'rgba(255,255,255,0.25)';
+        stickInner.style.borderRadius = '50%';
+        stickInner.style.transform = 'translate(-50%, -50%)';
+        stickOuter.appendChild(stickInner);
+
+        let stickActive = false, stickStart = {x:0, y:0}, stickPos = {x:0, y:0};
+        stickOuter.addEventListener('touchstart', e => {
+            stickActive = true;
+            const t = e.touches[0];
+            stickStart = {x: t.clientX, y: t.clientY};
+            stickInner.style.left = '8vw';
+            stickInner.style.top = '8vw';
+        });
+        stickOuter.addEventListener('touchmove', e => {
+            if (!stickActive) return;
+            const t = e.touches[0];
+            const dx = t.clientX - stickStart.x;
+            const dy = t.clientY - stickStart.y;
+            const maxDist = stickOuter.offsetWidth/2.2;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            let angle = Math.atan2(dy, dx);
+            if (dist > maxDist) dist = maxDist;
+            stickPos = {x: Math.cos(angle)*dist, y: Math.sin(angle)*dist};
+            stickInner.style.left = (8 + stickPos.x / (stickOuter.offsetWidth/2) * 8) + 'vw';
+            stickInner.style.top = (8 + stickPos.y / (stickOuter.offsetHeight/2) * 8) + 'vw';
+            // Map to WASD for movement
+            keyboard['KeyW'] = stickPos.y < -maxDist*0.3;
+            keyboard['KeyS'] = stickPos.y > maxDist*0.3;
+            keyboard['KeyA'] = stickPos.x < -maxDist*0.3;
+            keyboard['KeyD'] = stickPos.x > maxDist*0.3;
+        });
+        stickOuter.addEventListener('touchend', e => {
+            stickActive = false;
+            stickInner.style.left = '8vw';
+            stickInner.style.top = '8vw';
+            keyboard['KeyW'] = false;
+            keyboard['KeyS'] = false;
+            keyboard['KeyA'] = false;
+            keyboard['KeyD'] = false;
+        });
+
+        // --- Run Button ---
+        const runBtn = document.createElement('button');
+        runBtn.innerText = 'Run';
+        runBtn.style.position = 'absolute';
+        runBtn.style.right = '24vw';
+        runBtn.style.bottom = '18vh';
+        runBtn.style.width = '12vw';
+        runBtn.style.height = '12vw';
+        runBtn.style.borderRadius = '50%';
+        runBtn.style.background = 'rgba(255,255,255,0.18)';
+        runBtn.style.fontSize = '5vw';
+        runBtn.style.pointerEvents = 'auto';
+        runBtn.ontouchstart = () => { keyboard['ShiftLeft'] = true; };
+        runBtn.ontouchend = () => { keyboard['ShiftLeft'] = false; };
+        mobileControls.appendChild(runBtn);
+
+        // --- Hit Button (Punch/Shoot) ---
+        const hitBtn = document.createElement('button');
+        hitBtn.innerText = 'Hit';
+        hitBtn.style.position = 'absolute';
+        hitBtn.style.right = '10vw';
+        hitBtn.style.bottom = '10vh';
+        hitBtn.style.width = '14vw';
+        hitBtn.style.height = '14vw';
+        hitBtn.style.borderRadius = '50%';
+        hitBtn.style.background = 'rgba(255,255,255,0.18)';
+        hitBtn.style.fontSize = '5vw';
+        hitBtn.style.pointerEvents = 'auto';
+        hitBtn.ontouchstart = () => {
+            if (hasGun) {
+                // Simulate left mouse down for shooting
+                isLeftMouseDown = true;
+                isGunShootQueued = true;
+                isShooting = true;
+                character.state = 'gunshoot';
+                character.currentFrame = 0;
+                character.frameTime = 0;
+            } else {
+                // Simulate punch
+                if (playerControlMode === 'character' && character.isOnGround && !character.isPunching && character.state !== 'jump') {
+                    character.state = 'punch';
+                    character.isPunching = true;
+                    character.punchedThisAction = false;
+                    character.currentFrame = 0;
+                    character.frameTime = 0;
+                    character.velocity.x = 0;
+                    character.velocity.z = 0;
+                }
+            }
+        };
+        hitBtn.ontouchend = () => {
+            isLeftMouseDown = false;
+        };
+        mobileControls.appendChild(hitBtn);
+
+        // --- Get Into Car Button ---
+        const carBtn = document.createElement('button');
+        carBtn.innerText = 'Car';
+        carBtn.style.position = 'absolute';
+        carBtn.style.right = '10vw';
+        carBtn.style.bottom = '28vh';
+        carBtn.style.width = '10vw';
+        carBtn.style.height = '10vw';
+        carBtn.style.borderRadius = '50%';
+        carBtn.style.background = 'rgba(255,255,255,0.18)';
+        carBtn.style.fontSize = '4vw';
+        carBtn.style.pointerEvents = 'auto';
+        carBtn.ontouchstart = () => {
+            // Simulate E key for enter/exit car
+            const e = { code: 'KeyE' };
+            onKeyDown(e);
+            setTimeout(() => onKeyUp(e), 100);
+        };
+        mobileControls.appendChild(carBtn);
+
+        // --- Weapon Switch Button ---
+        const weaponBtn = document.createElement('button');
+        weaponBtn.innerText = 'Switch';
+        weaponBtn.style.position = 'absolute';
+        weaponBtn.style.left = '10vw';
+        weaponBtn.style.bottom = '28vh';
+        weaponBtn.style.width = '10vw';
+        weaponBtn.style.height = '10vw';
+        weaponBtn.style.borderRadius = '50%';
+        weaponBtn.style.background = 'rgba(255,255,255,0.18)';
+        weaponBtn.style.fontSize = '4vw';
+        weaponBtn.style.pointerEvents = 'auto';
+        weaponBtn.ontouchstart = () => {
+            // Toggle between gun and no gun
+            if (hasGun) {
+                onKeyDown({ code: 'Digit1' });
+                setTimeout(() => onKeyUp({ code: 'Digit1' }), 100);
+            } else {
+                onKeyDown({ code: 'Digit2' });
+                setTimeout(() => onKeyUp({ code: 'Digit2' }), 100);
+            }
+        };
+        mobileControls.appendChild(weaponBtn);
+    }
 }
 
 async function loadAllTextures() {

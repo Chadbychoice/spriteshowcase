@@ -11,6 +11,63 @@ import { ColorCorrectionShader } from 'three/examples/jsm/shaders/ColorCorrectio
 // Import Water
 import { Water } from 'three/examples/jsm/objects/Water.js';
 
+// --- Loading Screen Implementation ---
+let loadingScreen = document.getElementById('loading-screen');
+if (!loadingScreen) {
+    loadingScreen = document.createElement('div');
+    loadingScreen.id = 'loading-screen';
+    loadingScreen.style.position = 'fixed';
+    loadingScreen.style.left = '0';
+    loadingScreen.style.top = '0';
+    loadingScreen.style.width = '100vw';
+    loadingScreen.style.height = '100vh';
+    loadingScreen.style.background = 'url("/loading.png") center center no-repeat';
+    loadingScreen.style.backgroundSize = 'cover';
+    loadingScreen.style.zIndex = '5000';
+    loadingScreen.style.display = 'flex';
+    loadingScreen.style.flexDirection = 'column';
+    loadingScreen.style.justifyContent = 'flex-end';
+    loadingScreen.style.alignItems = 'center';
+    loadingScreen.style.transition = 'opacity 0.7s';
+    document.body.appendChild(loadingScreen);
+}
+let loadingBarContainer = document.getElementById('loading-bar-container');
+if (!loadingBarContainer) {
+    loadingBarContainer = document.createElement('div');
+    loadingBarContainer.id = 'loading-bar-container';
+    loadingBarContainer.style.width = '60%';
+    loadingBarContainer.style.maxWidth = '480px';
+    loadingBarContainer.style.height = '32px';
+    loadingBarContainer.style.marginBottom = '10vh';
+    loadingBarContainer.style.background = 'rgba(0,0,0,0.4)';
+    loadingBarContainer.style.borderRadius = '16px';
+    loadingBarContainer.style.overflow = 'hidden';
+    loadingBarContainer.style.boxShadow = '0 2px 16px rgba(0,0,0,0.3)';
+    loadingScreen.appendChild(loadingBarContainer);
+}
+let loadingBar = document.getElementById('loading-bar');
+if (!loadingBar) {
+    loadingBar = document.createElement('div');
+    loadingBar.id = 'loading-bar';
+    loadingBar.style.height = '100%';
+    loadingBar.style.width = '0%';
+    loadingBar.style.background = 'linear-gradient(90deg, #4e9cff, #00e0ff)';
+    loadingBar.style.transition = 'width 0.2s';
+    loadingBarContainer.appendChild(loadingBar);
+}
+let loadingText = document.getElementById('loading-text');
+if (!loadingText) {
+    loadingText = document.createElement('div');
+    loadingText.id = 'loading-text';
+    loadingText.style.color = 'white';
+    loadingText.style.fontSize = '1.2em';
+    loadingText.style.margin = '12px 0 32px 0';
+    loadingText.style.textShadow = '0 2px 8px #000';
+    loadingText.style.fontWeight = 'bold';
+    loadingText.innerText = 'Loading...';
+    loadingScreen.appendChild(loadingText);
+}
+// --- End Loading Screen Implementation ---
 let scene, camera, renderer;
 let composer;
 let bloomPass; // Declare bloomPass in the global scope
@@ -876,6 +933,7 @@ function init() {
         if (!animationFrameId) {
             animate();
         }
++       hideLoadingScreen();
     }).catch(err => {
         console.error("Error loading textures:", err);
     });
@@ -4327,6 +4385,46 @@ if (npc.sprite.material) npc.sprite.material.dispose();
 // ...
 //
 // These are already present in some places, but ensure they are present everywhere an object is removed.
+// ... existing code ...
+
+
+// --- Loading Progress Tracking ---
+let totalAssetsToLoad = 0;
+let loadedAssets = 0;
+function setLoadingProgress(progress, text) {
+    loadingBar.style.width = Math.round(progress * 100) + '%';
+    if (text) loadingText.innerText = text;
+}
+function incrementLoadedAssets(text) {
+    loadedAssets++;
+    setLoadingProgress(loadedAssets / totalAssetsToLoad, text);
+}
+// --- End Loading Progress Tracking ---
+
+// Patch textureLoader to track progress
+const originalTextureLoaderLoad = textureLoader.load.bind(textureLoader);
+textureLoader.load = function(url, onLoad, onProgress, onError) {
+    totalAssetsToLoad++;
+    return originalTextureLoaderLoad(url, function(texture) {
+        incrementLoadedAssets('Loaded: ' + url.split('/').pop());
+        if (onLoad) onLoad(texture);
+    }, onProgress, function(err) {
+        incrementLoadedAssets('Failed: ' + url.split('/').pop());
+        if (onError) onError(err);
+    });
+};
+// --- End patch ---
+
+// When all assets are loaded, fade out loading screen
+function hideLoadingScreen() {
+    loadingScreen.style.opacity = '0';
+    setTimeout(() => {
+        loadingScreen.style.display = 'none';
+    }, 800);
+}
+// ...
+// In your main texture loading chain, after all .then()s:
+// .then(() => { ... if (!animationFrameId) animate(); hideLoadingScreen(); })
 // ... existing code ...
 
 

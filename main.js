@@ -47,11 +47,12 @@ const CHARACTER_COLLISION_RADIUS = 0.3; // Make character hitbox smaller
 const TREE_COLLISION_RADIUS = 0.5;    // Make tree hitbox smaller
 const CAR_SCALE = 6; // Make car larger
 const CAR_COLLISION_RADIUS = 1.5; // Collision radius for the car
-const CAR_ACCELERATION = 20.0; // Make car faster still
-const CAR_BRAKING = 10.0; // Units per second^2
-const CAR_FRICTION = 2.0; // Slowdown factor
-const CAR_TURN_SPEED = 1.5; // Radians per second
-const MAX_CAR_SPEED = 30.0; // Increase max speed again
+const CAR_ACCELERATION = 14; // Lower acceleration for slower buildup to top speed
+const CAR_BRAKING = 25.0;      // Keep strong braking
+const CAR_FRICTION = 1.5;      // Keep friction
+const CAR_DRAG = 0.18;         // Keep drag
+const CAR_TURN_SPEED = 1.7;    // Keep turn speed
+const MAX_CAR_SPEED = 76.0;    // Significantly higher top speed
 const INTERACTION_DISTANCE = 2.0; // Max distance to interact with car
 const CAR_SPRITE_PREFIX = "bc66dce3-9546-48ba-b62e-3e93e8b7c623"; // Updated prefix
 const CAR2_SPRITE_PREFIX = "8cc5ca8e-efd6-48ea-8962-cb703a81bf5f"; // Prefix for the blue car
@@ -130,12 +131,151 @@ const SATURATION_MULTIPLIER = 1.5; // Increased saturation
 const CAR_HIT_IMPULSE_HORIZONTAL = 15.0; // For car hitting NPC
 const CAR_HIT_IMPULSE_VERTICAL = 7.0;   // For car hitting NPC
 const CAR_REBOUND_SPEED = 5.0; // Speed at which car bounces off obstacles
+// --- Generated from editor JSON ---
+const floorTiles = [  ["default","default","default","default","default","default","default","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk"],
+["default","default","default","default","default","default","default","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","sidewalk"],
+["default","default","default","default","default","default","default","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","sidewalk"],
+["default","default","default","default","default","default","default","default","brick","brick","brick","brick","brick","brick","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["default","default","default","default","default","default","default","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","sidewalk"],
+["default","default","default","default","default","default","default","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","sidewalk"],
+["default","default","default","default","default","default","asphalt","asphalt","brick","brick","brick","brick","brick","brick","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["default","default","default","default","default","default","asphalt","asphalt","brick","brick","brick","brick","brick","brick","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["default","default","default","default","default","default","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","sidewalk"],
+["default","default","default","default","default","default","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","brick","brick","brick","brick","brick","brick","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","default","default","default","default","brick","brick","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","brick","brick","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","brick","brick","sidewalk","grass","grass","grass","grass","grass","grass","grass","grass","grass","sidewalk","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","brick","brick","sidewalk","grass","grass","grass","grass","grass","grass","grass","grass","grass","sidewalk","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","brick","brick","sidewalk","grass","grass","grass","grass","grass","grass","grass","grass","grass","sidewalk","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","brick","brick","sidewalk","grass","grass","grass","grass","grass","grass","grass","grass","grass","sidewalk","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","brick","brick","sidewalk","grass","grass","grass","grass","grass","grass","grass","grass","grass","sidewalk","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","brick","brick","sidewalk","grass","grass","grass","grass","grass","grass","grass","grass","grass","sidewalk","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","brick","brick","sidewalk","grass","grass","grass","grass","grass","grass","grass","grass","grass","sidewalk","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","brick","brick","sidewalk","grass","grass","grass","grass","grass","grass","grass","grass","grass","sidewalk","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","brick","brick","sidewalk","grass","grass","grass","grass","grass","grass","grass","grass","grass","sidewalk","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","brick","brick","sidewalk","grass","grass","grass","grass","grass","grass","grass","grass","grass","sidewalk","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","brick","brick","sidewalk","grass","grass","grass","grass","grass","grass","grass","grass","grass","sidewalk","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","brick","brick","sidewalk","grass","grass","grass","grass","grass","grass","grass","grass","grass","sidewalk","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","brick","brick","sidewalk","grass","grass","grass","grass","grass","grass","grass","grass","grass","sidewalk","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","brick","brick","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","sidewalk"],
+["brick","brick","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","sidewalk"],
+["brick","brick","brick","brick","brick","brick","brick","brick","default","sidewalk","asphalt","asphalt","default","brick","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["brick","brick","brick","brick","brick","brick","brick","brick","default","sidewalk","asphalt","asphalt","default","default","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["brick","brick","brick","brick","brick","brick","brick","brick","brick","sidewalk","asphalt","asphalt","default","brick","default","default","brick","asphalt","asphalt","sidewalk"],
+["sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","asphalt","asphalt","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","asphalt","asphalt","sidewalk"],
+["sidewalk","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","sidewalk","brick","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["sidewalk","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","sidewalk","brick","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["sidewalk","asphalt","asphalt","default","default","default","default","default","default","default","asphalt","asphalt","sidewalk","brick","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["sidewalk","asphalt","asphalt","brick","brick","brick","brick","brick","brick","default","asphalt","asphalt","sidewalk","brick","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["sidewalk","asphalt","asphalt","brick","grass","grass","grass","brick","brick","default","asphalt","asphalt","sidewalk","brick","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["sidewalk","asphalt","asphalt","brick","grass","grass","grass","brick","brick","default","asphalt","asphalt","sidewalk","brick","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["sidewalk","asphalt","asphalt","brick","brick","brick","brick","brick","brick","default","asphalt","asphalt","sidewalk","brick","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["sidewalk","asphalt","asphalt","default","brick","brick","brick","brick","default","default","asphalt","asphalt","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","asphalt","asphalt","sidewalk"],
+["sidewalk","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","sidewalk"],
+["sidewalk","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","sidewalk"],
+["sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","asphalt","asphalt","sidewalk"],
+["sidewalk","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["sidewalk","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["sidewalk","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","brick","asphalt","asphalt","sidewalk"],
+["sidewalk","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","sidewalk"],
+["sidewalk","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","asphalt","sidewalk"],
+["sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk","sidewalk"]
 
-// --- State ---
+  ];
+  window.floorTiles = floorTiles;
+  const placedBuildings = [];
+  const treePositions = [];
+  const streetlampPositions = [];
+
 const GROUND_LEVEL_Y = SPRITE_SCALE / 2 - 0.075; // Store ground level calculation
 const TREE_Y_POS = TREE_SCALE / 2 - 0.4; // Lower trees further
 const GRASS_Y_POS = 0.005; // Slightly above ground, below road/trees
 const CAR_Y_POS = CAR_SCALE / 2 - 2.49; // Raised by 0.01 (from -2.5)
+  // Test trees
+  treePositions.push(new THREE.Vector3(-8.088363742357004, TREE_Y_POS, -2.6923455315504228));
+  treePositions.push(new THREE.Vector3(24.762110830224607, TREE_Y_POS, -2.6300998677881466));
+  treePositions.push(new THREE.Vector3(-1.000745930152883, TREE_Y_POS, -17.673624424610843));
+  treePositions.push(new THREE.Vector3(10.056271863830895, TREE_Y_POS, -7.800007046372826));
+  treePositions.push(new THREE.Vector3(27.201863265368985, TREE_Y_POS, -22.844328986441));
+  treePositions.push(new THREE.Vector3(-6.521937211782992, TREE_Y_POS, -40.2872210742026));
+  treePositions.push(new THREE.Vector3(27.707426348687385, TREE_Y_POS, -65.35162895648986));
+  treePositions.push(new THREE.Vector3(-7.618905056151249, TREE_Y_POS, -64.73735020874452));
+  treePositions.push(new THREE.Vector3(6.3256902661002545, TREE_Y_POS, -62.932025428262044));
+  treePositions.push(new THREE.Vector3(4.565448133807296, TREE_Y_POS, -47.8933923564778));
+  treePositions.push(new THREE.Vector3(-7.684407083690555, TREE_Y_POS, -57.18573380489071));
+  treePositions.push(new THREE.Vector3(25.11609324176436, TREE_Y_POS, -37.73579778589137));
+  treePositions.push(new THREE.Vector3(25.152460843449852, TREE_Y_POS, -54.86812977288552));
+  treePositions.push(new THREE.Vector3(15.320569928913564, TREE_Y_POS, -47.75117779090406));
+  treePositions.push(new THREE.Vector3(15.475753811759805, TREE_Y_POS, -58.22592935566848));
+  treePositions.push(new THREE.Vector3(4.25939191112346, TREE_Y_POS, -30.65082998276878));
+  treePositions.push(new THREE.Vector3(15.259684542739139, TREE_Y_POS, -27.39339796695091));
+  treePositions.push(new THREE.Vector3(-11.351489281460587, TREE_Y_POS, -26.884471751984467));
+  treePositions.push(new THREE.Vector3(-33.331427196140254, TREE_Y_POS, 74.77134434865204));
+treePositions.push(new THREE.Vector3(-19.231336193847063, TREE_Y_POS, 82.83254391361233));
+treePositions.push(new THREE.Vector3(-28.345282034315588, TREE_Y_POS, 81.37514852201367));
+treePositions.push(new THREE.Vector3(-23.194185337510575, TREE_Y_POS, 76.23159445284908));
+
+// Test streetlamps
+streetlampPositions.push(new THREE.Vector3(1.4959151428369781, 0.51, -77.47718072877886));
+streetlampPositions.push(new THREE.Vector3(-23.26158072954999, 0.51, -76.75058463043291));
+streetlampPositions.push(new THREE.Vector3(20.971789888991875, 0.51, -72.08283371563755));
+streetlampPositions.push(new THREE.Vector3(44.54210931951685, 0.51, -54.13605368713463));
+streetlampPositions.push(new THREE.Vector3(43.4582514572347, 0.51, -40.01757495461625));
+
+placedBuildings.push({ x: -38.28915115740031, y: 0.51, z: 64.05810836411239, width: 1, height: 0.85, depth: 1, wallTextureKey: 'skyscraper1' });
+placedBuildings.push({ x: -28.97703626879242, y: 0.51, z: 65.65624361156945, width: 1, height: 0.65, depth: 1, wallTextureKey: 'skyscraper2' });
+placedBuildings.push({ x: -21.0081467994708, y: 0.51, z: 65.27162749307196, width: 1, height: 1, depth: 1, wallTextureKey: 'skyscraper2' });
+placedBuildings.push({ x: -8.398382644712711, y: 0.51, z: 63.528543432374164, width: 2, height: 0.6, depth: 0.8, wallTextureKey: 'restaurant1' });
+placedBuildings.push({ x: -31.881431602440593, y: 0.51, z: 94.77235831958545, width: 2, height: 0.85, depth: 0.8, wallTextureKey: 'skyscraper2' });
+placedBuildings.push({ x: -3.046546514334615, y: 0.51, z: 90.66187373135632, width: 0.8, height: 1.05, depth: 1.6, wallTextureKey: 'skyscraper1' });
+placedBuildings.push({ x: -3.4562935932200958, y: 0.51, z: 76.14807532517122, width: 0.8, height: 0.6, depth: 2, wallTextureKey: 'store' });
+placedBuildings.push({ x: 14.477693267044657, y: 0.51, z: 34.5650972415813, width: 0.8, height: 1.15, depth: 2, wallTextureKey: 'skyscraper1' });
+placedBuildings.push({ x: -9.094168118791075, y: 0.51, z: 33.46299788183997, width: 0.8, height: 0.7, depth: 2, wallTextureKey: 'skyscraper3' });
+placedBuildings.push({ x: -26.884902402047146, y: 0.51, z: 7.121383819808784, width: 0.8, height: 0.6, depth: 1.6, wallTextureKey: 'pizza2' });
+placedBuildings.push({ x: -28.931722349091956, y: 0.51, z: -8.434707865719751, width: 1.2, height: 0.6, depth: 1.2, wallTextureKey: 'restaurant1' });
+placedBuildings.push({ x: -27.330847512353557, y: 0.51, z: -23.353190835110027, width: 0.8, height: 0.6, depth: 1.6, wallTextureKey: 'restaurant2' });
+placedBuildings.push({ x: -26.445813227131794, y: 0.51, z: -39.676084648042476, width: 0.8, height: 0.6, depth: 1.6, wallTextureKey: 'restaurant3' });
+placedBuildings.push({ x: -26.27877458343326, y: 0.51, z: -57.4788138154466, width: 0.8, height: 0.6, depth: 1.6, wallTextureKey: 'restaurant3' });
+placedBuildings.push({ x: -38.25382609754075, y: 0.51, z: -129.93620472785503, width: 5, height: 0.6, depth: 5, wallTextureKey: 'store' });
+placedBuildings.push({ x: 36.92943349901283, y: 0.51, z: 37.489907984083146, width: 1, height: 0.75, depth: 1, wallTextureKey: 'skyscraper2' });
+placedBuildings.push({ x: 38.522648857644555, y: 0.51, z: 51.60997554320571, width: 1, height: 0.95, depth: 1, wallTextureKey: 'skyscraper3' });
+placedBuildings.push({ x: 27.354568426272536, y: 0.51, z: 53.92987425422663, width: 1, height: 0.6, depth: 1, wallTextureKey: 'skyscraper3' });
+placedBuildings.push({ x: 28.16473022253774, y: 0.51, z: 36.37969698259732, width: 1, height: 0.65, depth: 1, wallTextureKey: 'skyscraper3' });
+placedBuildings.push({ x: 19.196145204270298, y: 0.51, z: 35.09796981031718, width: 1, height: 1.2, depth: 1, wallTextureKey: 'skyscraper3' });
+placedBuildings.push({ x: -51.928292556404244, y: 0.51, z: 13.998962911152049, width: 1, height: 0.85, depth: 3, wallTextureKey: 'skyscraper1' });
+placedBuildings.push({ x: -51.79296676244492, y: 0.51, z: -10.138900448970574, width: 1, height: 1.2, depth: 3, wallTextureKey: 'skyscraper2' });
+placedBuildings.push({ x: -52.33265256838344, y: 0.51, z: -35.89507354338063, width: 1, height: 0.65, depth: 3, wallTextureKey: 'skyscraper2' });
+placedBuildings.push({ x: -52.807754767437345, y: 0.51, z: -61.71045023417797, width: 1, height: 0.8, depth: 3, wallTextureKey: 'skyscraper2' });
+placedBuildings.push({ x: 29.556189955346476, y: 0.51, z: 78.30198801960152, width: 3, height: 0.7, depth: 3, wallTextureKey: 'skyscraper3' });
+placedBuildings.push({ x: 30.452413143086574, y: 0.51, z: 62.09817384952041, width: 3, height: 0.6, depth: 1, wallTextureKey: 'restaurant3' });
+placedBuildings.push({ x: -45.578421915724846, y: 0.51, z: 122.25680446500814, width: 2, height: 1.1, depth: 2, wallTextureKey: 'skyscraper1' });
+placedBuildings.push({ x: 34.10257671953992, y: 0.51, z: 120.57242042569627, width: 2, height: 1.05, depth: 2, wallTextureKey: 'skyscraper1' });
+placedBuildings.push({ x: 8.599938598833361, y: 0.51, z: 121.69455808127483, width: 2, height: 1.05, depth: 2, wallTextureKey: 'skyscraper2' });
+placedBuildings.push({ x: -22.051292264602324, y: 0.51, z: 121.37448568858034, width: 2, height: 0.9, depth: 2, wallTextureKey: 'skyscraper3' });
+placedBuildings.push({ x: 12.395454504327944, y: 0.51, z: -36.22398990983825, width: 1, height: 0.6, depth: 1, wallTextureKey: 'pizza2' });
+placedBuildings.push({ x: -17.076151432482334, y: 0.51, z: 34.68381749825738, width: 1, height: 0.9, depth: 1, wallTextureKey: 'skyscraper1' });
+placedBuildings.push({ x: -47.73780571392487, y: 0.51, z: 37.03109052699327, width: 1, height: 0.65, depth: 1, wallTextureKey: 'skyscraper1' });
+placedBuildings.push({ x: -44.055009125008645, y: 0.51, z: 27.18934030376151, width: 1, height: 1, depth: 1, wallTextureKey: 'skyscraper3' });
+placedBuildings.push({ x: -26.133325841026895, y: 0.51, z: 34.776811488905224, width: 1, height: 1, depth: 1, wallTextureKey: 'skyscraper3' });
+placedBuildings.push({ x: -36.39503858585896, y: 0.51, z: 34.90247896623558, width: 1, height: 0.95, depth: 1, wallTextureKey: 'skyscraper2' });
+placedBuildings.push({ x: -17.5263348731798, y: 0.51, z: 27.613091962754083, width: 1, height: 0.85, depth: 1, wallTextureKey: 'skyscraper2' });
+placedBuildings.push({ x: -30.760333216962014, y: 0.51, z: 27.030896307404035, width: 1, height: 1.1, depth: 1, wallTextureKey: 'skyscraper2' });
+placedBuildings.push({ x: -8.42197147083045, y: 0.51, z: -81.64512806899396, width: 1, height: 1.15, depth: 1, wallTextureKey: 'skyscraper2' });
+placedBuildings.push({ x: 11.187950746164276, y: 0.51, z: -106.572729933425, width: 1, height: 1.15, depth: 1, wallTextureKey: 'skyscraper2' });
+placedBuildings.push({ x: 38.44241269448354, y: 0.51, z: -81.64510022542542, width: 1, height: 0.7, depth: 1, wallTextureKey: 'skyscraper2' });
+placedBuildings.push({ x: 14.84403752081164, y: 0.51, z: -86.63063686044211, width: 1, height: 1.05, depth: 1, wallTextureKey: 'skyscraper2' });
+placedBuildings.push({ x: 1.8815474461431947, y: 0.51, z: -85.63354029012156, width: 1, height: 1, depth: 1, wallTextureKey: 'skyscraper1' });
+placedBuildings.push({ x: 28.803640389778966, y: 0.51, z: -82.97457855914496, width: 1, height: 0.9, depth: 1, wallTextureKey: 'skyscraper1' });
+placedBuildings.push({ x: 21.159096200894062, y: 0.51, z: -108.23456362219528, width: 1, height: 0.75, depth: 1, wallTextureKey: 'skyscraper1' });
+placedBuildings.push({ x: 35.907102158468646, y: 0.51, z: -107.90439922023552, width: 1, height: 0.8, depth: 1, wallTextureKey: 'skyscraper1' });
+placedBuildings.push({ x: -1.099682846357311, y: 0.51, z: -109.95772083632684, width: 1, height: 1.15, depth: 1, wallTextureKey: 'skyscraper3' });
+placedBuildings.push({ x: 24.36010330400987, y: 0.51, z: -129.903680230363, width: 4.5, height: 0.85, depth: 0.5, wallTextureKey: 'skyscraper3' });
+placedBuildings.push({ x: -29.773301050766406, y: 0.51, z: -71.29720630199363, width: 1.2, height: 0.6, depth: 1.2, wallTextureKey: 'pizza2' });
+placedBuildings.push({ x: -52.02768210579337, y: 0.51, z: -79.92329331169984, width: 1.2, height: 0.6, depth: 1.2, wallTextureKey: 'restaurant3' });
+  // --- End generated code ---
+// --- State ---
 
 let playerControlMode = 'character'; // 'character' or 'car'
 let currentDrivingCar = null; // Reference to the car object being driven, or null
@@ -294,13 +434,10 @@ let textures = {
 };
 let treeTextures = {}; // { 0: tex, 22.5: tex, ... }
 let treeSprites = [];  // Array to hold tree mesh objects
-let treePositions = [ // Define positions for trees
-    new THREE.Vector3(-10, TREE_Y_POS, -15),
-    new THREE.Vector3(15, TREE_Y_POS, -10),
-    new THREE.Vector3(-5, TREE_Y_POS, -25),
-    new THREE.Vector3(10, TREE_Y_POS, -30),
-    new THREE.Vector3(-18, TREE_Y_POS, -8),
-];
+let streetlampTextures = {}; // { 0: tex, 5.625: tex, ... }
+let streetlampSprites = [];  // Array to hold streetlamp mesh objects
+// Removed old treePositions declaration to avoid redeclaration error
+// ... existing code ...
 
 let carTextures = {}; // Car Textures (renamed from car.textures)
 let npcs = []; // Array to hold NPC state objects
@@ -320,6 +457,7 @@ let texturesLoaded = false;
 let treeTexturesLoaded = false;
 let carTexturesLoaded = false;
 let npcTexturesLoaded = false; // Add flag for NPC textures
+let streetlampTexturesLoaded = false;
 let car2TexturesLoaded = false; // Add flag for Car 2 textures
 let car3TexturesLoaded = false; // Add flag for Car 3 textures
 let car4TexturesLoaded = false; // Add flag for Car 4 textures
@@ -353,27 +491,45 @@ let ambientDustMaterial = null;
 let ambientDustData = []; // Array to manage individual ambient particle info
 
 // --- Skyscraper Positions (Updated for Island Shape) --- 
-const skyscraperPositions = [
-    // Near start (closer to center)
-    new THREE.Vector3(-15, 0, -10), 
-    new THREE.Vector3( 15, 0, -15), 
-    new THREE.Vector3(-10, 0, -30), 
-    new THREE.Vector3( 20, 0, -25), 
-    new THREE.Vector3(-25, 0, -50), // Pulled in Z
-    new THREE.Vector3( 25, 0, -70), // Pulled in Z
-    new THREE.Vector3(-30, 0, -90), // Pulled in Z
-    // Further out (still within island Z range [-225, 225])
-    new THREE.Vector3( 35, 0, -120),
-    new THREE.Vector3(-30, 0, -150),
-    new THREE.Vector3( 10, 0, -180),
-    new THREE.Vector3(-15, 0, -200),
-    new THREE.Vector3( 40, 0, 50),   // Added some positive Z
-    new THREE.Vector3(-45, 0, 80),   // Added some positive Z
-    new THREE.Vector3( 30, 0, 110),  // Added some positive Z
-    new THREE.Vector3(-20, 0, 140),  // Added some positive Z
-    new THREE.Vector3( 50, 0, 170),  // Added some positive Z
-    new THREE.Vector3(-55, 0, 200),  // Added some positive Z (Max X is 60)
-];
+const skyscraperPositions = [];
+
+
+// --- Generated from editor JSON ---
+skyscraperPositions.push({ x: -15.352004077254197, y: 0.51, z: 102.1200270284037 });
+skyscraperPositions.push({ x: -9.776170615992442, y: 0.51, z: 109.50651904925599 });
+skyscraperPositions.push({ x: 2.075469205917954, y: 0.51, z: 110.09364666760284 });
+skyscraperPositions.push({ x: 12.635694957108736, y: 0.51, z: 109.90071671718476 });
+skyscraperPositions.push({ x: 15.386617057060928, y: 0.51, z: 102.97350782658886 });
+skyscraperPositions.push({ x: 16.95021683734514, y: 0.51, z: 94.55145220690451 });
+skyscraperPositions.push({ x: 17.382298530264137, y: 0.51, z: 88.58320366093068 });
+skyscraperPositions.push({ x: 20.209812361868796, y: 0.51, z: 70.55895216274953 });
+skyscraperPositions.push({ x: 20.439549146758928, y: 0.51, z: 58.854077325831625 });
+skyscraperPositions.push({ x: 18.10163147578862, y: 0.51, z: 45.0963500539729 });
+skyscraperPositions.push({ x: 21.2543857951555, y: 0.51, z: 8.299807483367744 });
+skyscraperPositions.push({ x: 19.59625332688175, y: 0.51, z: -29.836872030920517 });
+skyscraperPositions.push({ x: 14.78177925123503, y: 0.51, z: -65.97540898964402 });
+skyscraperPositions.push({ x: -17.086540173743558, y: 0.51, z: -84.17646990855934 });
+skyscraperPositions.push({ x: -14.81276516406075, y: 0.51, z: -44.11610356067868 });
+skyscraperPositions.push({ x: -15.112609992514631, y: 0.51, z: -0.1838780083114102 });
+skyscraperPositions.push({ x: -16.346294165948862, y: 0.51, z: 18.260694726627506 });
+skyscraperPositions.push({ x: -14.83824469121161, y: 0.51, z: 42.83673602361074 });
+skyscraperPositions.push({ x: -17.78076330194726, y: 0.51, z: 58.18744322951464 });
+skyscraperPositions.push({ x: -16.26939428973376, y: 0.51, z: 74.46986049982387 });
+skyscraperPositions.push({ x: -17.900248416189747, y: 0.51, z: 84.9894104877819 });
+skyscraperPositions.push({ x: -14.043422561600481, y: 0.51, z: 12.410544454113271 });
+skyscraperPositions.push({ x: -14.878254106461656, y: 0.51, z: 3.2086212642952177 });
+skyscraperPositions.push({ x: -14.899607957078173, y: 0.51, z: 38.227345215120266 });
+skyscraperPositions.push({ x: 18.10781421618928, y: 0.51, z: 38.803539918700096 });
+skyscraperPositions.push({ x: 18.08172058117302, y: 0.51, z: 20.08403488583081 });
+skyscraperPositions.push({ x: 18.583605882346546, y: 0.51, z: 1.3949192994832202 });
+treePositions.push(new THREE.Vector3(-8.278306450019699, 0.51, -25.690524674397054));
+streetlampPositions.push(new THREE.Vector3(9.115071416122916, 0.51, -24.339077460960752));
+skyscraperPositions.push({ x: -16.04696029417546, y: 0.51, z: -18.21998381531043 });
+skyscraperPositions.push({ x: 14.893494712579853, y: 0.51, z: -15.011035684352233 });
+skyscraperPositions.push({ x: 12.664449387729494, y: 0.51, z: -44.30809206921734 });
+skyscraperPositions.push({ x: -8.434887224209021, y: 0.51, z: -62.06257506373782 });
+skyscraperPositions.push({ x: -28.025785802705432, y: 0.51, z: -43.04926096391191 });
+// --- End generated code ---
 
 // Define NPC types and their UUIDs
 const npcTypes = [
@@ -531,8 +687,8 @@ function init() {
     const skyboxTexture = cubeTextureLoader.setPath(skyboxBasePath).load(skyboxUrls);
     scene.background = skyboxTexture;
 
-    // Adjust Fog for darker/grittier feel - Further decrease density
-    scene.fog = new THREE.FogExp2(0x333333, 0.020); // Density reduced further from 0.025
+    // Adjust Fog for brighter distant objects
+    scene.fog = new THREE.FogExp2(0xaaaaaa, 0.015); // Lighter color, lower density
 
     // Camera
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); // Adjust camera position for ground plane view
@@ -578,34 +734,17 @@ function init() {
     const outputPass = new OutputPass();
     composer.addPass(outputPass);
 
-    // Lighting - Increase both ambient and directional
-    const ambientLight = new THREE.AmbientLight(0xaaaaaa, 0.8); // Increased intensity from 0.6
+    // Lighting - Increase both ambient and directional significantly
+    const ambientLight = new THREE.AmbientLight(0xcccccc, 1.5); // Brighter ambient color, increased intensity
     scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // Increased intensity from 0.6
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // Increased intensity
     directionalLight.position.set(5, 10, 7.5); 
     scene.add(directionalLight);
 
-    // Ground plane - ISLAND
-    const groundTexture = textureLoader.load('/textures/ground.webp'); // Load the texture
-    groundTexture.wrapS = THREE.RepeatWrapping; // Enable horizontal wrapping
-    groundTexture.wrapT = THREE.RepeatWrapping; // Enable vertical wrapping
-    // Adjust repeat based on texture scale relative to new island size
-    const groundTextureTileSize = 4; // Assume texture roughly covers 4x4 world units
-    groundTexture.repeat.set(ISLAND_WIDTH / groundTextureTileSize, ISLAND_LENGTH / groundTextureTileSize); 
-
-    const groundGeometry = new THREE.PlaneGeometry(ISLAND_WIDTH, ISLAND_LENGTH); // Use island dimensions
-    // const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x808080, side: THREE.DoubleSide }); // Grey ground
-    const groundMaterial = new THREE.MeshStandardMaterial({ 
-        map: groundTexture, // Apply the texture map
-        side: THREE.DoubleSide, 
-        roughness: 0.9, // Increase roughness to reduce shine
-        metalness: 0.1,  // Reduce metalness
-        emissive: 0x222222, // Increase emissive color slightly (lighter grey)
-        emissiveIntensity: 6.0 // Increased intensity from 5.0
-    }); 
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    ground.rotation.x = -Math.PI / 2;
-    scene.add(ground);
+    // Instead, load floorTiles from the editor (import or global)
+    if (typeof window.floorTiles !== 'undefined' && window.floorTiles) {
+        createEditorFloor(scene, window.floorTiles, textureLoader);
+    }
 
     // Grass Texture (Load it here)
     grassTexture = textureLoader.load('/textures/grass.webp');
@@ -619,383 +758,7 @@ function init() {
     buildingTexture.wrapT = THREE.RepeatWrapping;
     // Base repeat will be adjusted per skyscraper
 
-    // Road network
-    const roadTexture = textureLoader.load('/textures/asphalt.webp');
-    roadTexture.wrapS = THREE.RepeatWrapping;
-    roadTexture.wrapT = THREE.RepeatWrapping;
-    
-    // Load sidewalk texture
-    const sidewalkTexture = textureLoader.load('/textures/sidewalk.webp');
-    sidewalkTexture.wrapS = THREE.RepeatWrapping;
-    sidewalkTexture.wrapT = THREE.RepeatWrapping;
-
-    // Define street positions first
-    const crossStreetPositions = [-160, -120, -80, -40, 0, 40, 80, 120, 160];
-    const parallelStreetPositions = [-30, -15, 15, 30];
-
-    // Create main avenue
-    const mainRoadLength = ISLAND_LENGTH - 20;
-    const mainRoadGeometry = new THREE.PlaneGeometry(MAIN_ROAD_WIDTH, mainRoadLength);
-    const mainRoadMaterial = new THREE.MeshStandardMaterial({
-        map: roadTexture.clone(),
-        side: THREE.DoubleSide,
-        roughness: 0.9,
-        metalness: 0.1
-    });
-    mainRoadMaterial.map.repeat.set(MAIN_ROAD_WIDTH / 2, mainRoadLength / 2);
-    mainRoadMaterial.map.needsUpdate = true;
-    
-    const mainRoad = new THREE.Mesh(mainRoadGeometry, mainRoadMaterial);
-    mainRoad.rotation.x = -Math.PI / 2;
-    mainRoad.position.set(0, 0.01, 0);
-    scene.add(mainRoad);
-
-    // Add sidewalks for main avenue - split into segments between cross streets
-    const mainSidewalkGeometry = new THREE.PlaneGeometry(SIDEWALK_WIDTH, ROAD_WIDTH * 2);
-    const sidewalkMaterial = new THREE.MeshStandardMaterial({
-        map: sidewalkTexture.clone(),
-        side: THREE.DoubleSide,
-        roughness: 0.8,
-        metalness: 0.1
-    });
-    sidewalkMaterial.map.repeat.set(1, 2);
-    sidewalkMaterial.map.needsUpdate = true;
-
-    // Create sidewalk segments for main avenue
-    for (let i = 0; i < crossStreetPositions.length - 1; i++) {
-        const startZ = crossStreetPositions[i];
-        const endZ = crossStreetPositions[i + 1];
-        const segmentLength = endZ - startZ - ROAD_WIDTH * 1.5; // Increase gap at intersections
-        
-        if (segmentLength > 1) {
-            const segmentGeometry = new THREE.PlaneGeometry(SIDEWALK_WIDTH, segmentLength);
-            const segmentMaterial = sidewalkMaterial.clone();
-            segmentMaterial.map = sidewalkTexture.clone();
-            segmentMaterial.map.repeat.set(1, segmentLength / 2);
-            segmentMaterial.map.needsUpdate = true;
-
-            // Left sidewalk segment
-            const leftSegment = new THREE.Mesh(segmentGeometry, segmentMaterial.clone());
-            leftSegment.rotation.x = -Math.PI / 2;
-            leftSegment.position.set(
-                -MAIN_ROAD_WIDTH/2 - SIDEWALK_WIDTH/2,
-                SIDEWALK_HEIGHT,
-                (startZ + endZ) / 2 + ROAD_WIDTH/4 // Adjust center position to account for intersection gap
-            );
-            scene.add(leftSegment);
-
-            // Right sidewalk segment
-            const rightSegment = new THREE.Mesh(segmentGeometry, segmentMaterial.clone());
-            rightSegment.rotation.x = -Math.PI / 2;
-            rightSegment.position.set(
-                MAIN_ROAD_WIDTH/2 + SIDEWALK_WIDTH/2,
-                SIDEWALK_HEIGHT,
-                (startZ + endZ) / 2 + ROAD_WIDTH/4 // Adjust center position to account for intersection gap
-            );
-            scene.add(rightSegment);
-        }
-    }
-
-    // Create parallel streets with segmented sidewalks
-    for (const xPos of parallelStreetPositions) {
-        // Create the street
-        const streetGeometry = new THREE.PlaneGeometry(ROAD_WIDTH, mainRoadLength * 0.8);
-        const streetMaterial = new THREE.MeshStandardMaterial({
-            map: roadTexture.clone(),
-            side: THREE.DoubleSide,
-            roughness: 0.9,
-            metalness: 0.1
-        });
-        streetMaterial.map.repeat.set(ROAD_WIDTH / 2, (mainRoadLength * 0.8) / 2);
-        streetMaterial.map.needsUpdate = true;
-        
-        const street = new THREE.Mesh(streetGeometry, streetMaterial);
-        street.rotation.x = -Math.PI / 2;
-        street.position.set(xPos, 0.011, 0);
-        scene.add(street);
-
-        // Create sidewalk segments between cross streets
-        for (let i = 0; i < crossStreetPositions.length - 1; i++) {
-            const startZ = crossStreetPositions[i];
-            const endZ = crossStreetPositions[i + 1];
-            const segmentLength = endZ - startZ - ROAD_WIDTH * 1.5; // Increase gap at intersections
-            
-            if (segmentLength > 1) {
-                const sidewalkGeometry = new THREE.PlaneGeometry(SIDEWALK_WIDTH, segmentLength);
-                const sidewalkMat = sidewalkMaterial.clone();
-                sidewalkMat.map = sidewalkTexture.clone();
-                sidewalkMat.map.repeat.set(1, segmentLength / 2);
-                sidewalkMat.map.needsUpdate = true;
-
-                const sidewalk = new THREE.Mesh(sidewalkGeometry, sidewalkMat);
-                sidewalk.rotation.x = -Math.PI / 2;
-                sidewalk.position.set(
-                    xPos + ROAD_WIDTH/2 + SIDEWALK_WIDTH/2,
-                    SIDEWALK_HEIGHT + 0.001,
-                    (startZ + endZ) / 2 + ROAD_WIDTH/4 // Adjust center position to account for intersection gap
-                );
-                scene.add(sidewalk);
-            }
-        }
-    }
-
-    // Create cross streets with segmented sidewalks
-    for (const zPos of crossStreetPositions) {
-        // Create the street
-        const crossStreetGeometry = new THREE.PlaneGeometry(ROAD_WIDTH, ISLAND_WIDTH);
-        const crossStreetMaterial = new THREE.MeshStandardMaterial({
-            map: roadTexture.clone(),
-            side: THREE.DoubleSide,
-            roughness: 0.9,
-            metalness: 0.1
-        });
-        crossStreetMaterial.map.repeat.set(ROAD_WIDTH / 2, ISLAND_WIDTH / 2);
-        crossStreetMaterial.map.needsUpdate = true;
-        
-        const crossStreet = new THREE.Mesh(crossStreetGeometry, crossStreetMaterial);
-        crossStreet.rotation.x = -Math.PI / 2;
-        crossStreet.rotation.z = Math.PI / 2;
-        crossStreet.position.set(0, 0.012, zPos);
-        scene.add(crossStreet);
-
-        // Create sidewalk segments between parallel streets
-        for (let i = 0; i < parallelStreetPositions.length - 1; i++) {
-            const startX = parallelStreetPositions[i];
-            const endX = parallelStreetPositions[i + 1];
-            const segmentLength = endX - startX - ROAD_WIDTH * 1.5; // Increase gap at intersections
-            
-            if (segmentLength > 1) {
-                const sidewalkGeometry = new THREE.PlaneGeometry(SIDEWALK_WIDTH, segmentLength);
-                const sidewalkMat = sidewalkMaterial.clone();
-                sidewalkMat.map = sidewalkTexture.clone();
-                sidewalkMat.map.repeat.set(1, segmentLength / 2);
-                sidewalkMat.map.needsUpdate = true;
-
-                const sidewalk = new THREE.Mesh(sidewalkGeometry, sidewalkMat);
-                sidewalk.rotation.x = -Math.PI / 2;
-                sidewalk.rotation.z = Math.PI / 2;
-                sidewalk.position.set(
-                    (startX + endX) / 2 + ROAD_WIDTH/4, // Adjust center position to account for intersection gap
-                    SIDEWALK_HEIGHT + 0.002,
-                    zPos + ROAD_WIDTH/2 + SIDEWALK_WIDTH/2
-                );
-                scene.add(sidewalk);
-            }
-        }
-    }
-
-    // Create diagonal roads with segmented sidewalks
-    const diagonalRoadLength = Math.sqrt(2) * ISLAND_WIDTH * 0.6;
-    const diagonalRoadGeometry = new THREE.PlaneGeometry(ROAD_WIDTH, diagonalRoadLength);
-    const diagonalRoadMaterial = new THREE.MeshStandardMaterial({
-        map: roadTexture.clone(),
-        side: THREE.DoubleSide,
-        roughness: 0.9,
-        metalness: 0.1
-    });
-    diagonalRoadMaterial.map.repeat.set(ROAD_WIDTH / 2, diagonalRoadLength / 2);
-    diagonalRoadMaterial.map.needsUpdate = true;
-
-    // Function to find intersection points with other roads
-    function getDiagonalSegments(startX, startZ, angle) {
-        const segments = [];
-        const dx = Math.cos(angle);
-        const dz = Math.sin(angle);
-        const maxLength = diagonalRoadLength;
-        
-        // Add start point
-        segments.push({x: startX, z: startZ});
-        
-        // Check intersections with parallel streets and main avenue
-        for (const x of [...parallelStreetPositions, 0]) {
-            if (Math.abs(x - startX) > 1) {
-                const t = (x - startX) / dx;
-                if (t > 0 && t < maxLength) {
-                    const z = startZ + t * dz;
-                    if (Math.abs(z) <= ISLAND_LENGTH / 2) {
-                        // Add points before and after intersection for proper gap
-                        segments.push({
-                            x: x - dx * ROAD_WIDTH * 0.75,
-                            z: z - dz * ROAD_WIDTH * 0.75,
-                            isRoadStart: true
-                        });
-                        segments.push({
-                            x: x + dx * ROAD_WIDTH * 0.75,
-                            z: z + dz * ROAD_WIDTH * 0.75,
-                            isRoadEnd: true
-                        });
-                    }
-                }
-            }
-        }
-        
-        // Check intersections with cross streets
-        for (const z of crossStreetPositions) {
-            if (Math.abs(z - startZ) > 1) {
-                const t = (z - startZ) / dz;
-                if (t > 0 && t < maxLength) {
-                    const x = startX + t * dx;
-                    if (Math.abs(x) <= ISLAND_WIDTH / 2) {
-                        // Add points before and after intersection for proper gap
-                        segments.push({
-                            x: x - dx * ROAD_WIDTH * 0.75,
-                            z: z - dz * ROAD_WIDTH * 0.75,
-                            isRoadStart: true
-                        });
-                        segments.push({
-                            x: x + dx * ROAD_WIDTH * 0.75,
-                            z: z + dz * ROAD_WIDTH * 0.75,
-                            isRoadEnd: true
-                        });
-                    }
-                }
-            }
-        }
-
-        // Add end point
-        const endX = startX + dx * maxLength;
-        const endZ = startZ + dz * maxLength;
-        segments.push({x: endX, z: endZ});
-        
-        // Sort segments by distance from start
-        segments.sort((a, b) => {
-            const distA = Math.sqrt(Math.pow(a.x - startX, 2) + Math.pow(a.z - startZ, 2));
-            const distB = Math.sqrt(Math.pow(b.x - startX, 2) + Math.pow(b.z - startZ, 2));
-            return distA - distB;
-        });
-        
-        return segments;
-    }
-
-    // Northeast diagonal with segmented sidewalk
-    const diagonalRoad1 = new THREE.Mesh(diagonalRoadGeometry, diagonalRoadMaterial);
-    diagonalRoad1.rotation.x = -Math.PI / 2;
-    diagonalRoad1.rotation.z = Math.PI / 4;
-    diagonalRoad1.position.set(20, 0.013, -60);
-    scene.add(diagonalRoad1);
-
-    const segments1 = getDiagonalSegments(20, -60, Math.PI / 4);
-    for (let i = 0; i < segments1.length - 1; i++) {
-        const start = segments1[i];
-        const end = segments1[i + 1];
-        
-        // Skip if this is a road intersection segment
-        if (start.isRoadStart || start.isRoadEnd || end.isRoadStart || end.isRoadEnd) continue;
-        
-        const segmentLength = Math.sqrt(
-            Math.pow(end.x - start.x, 2) + Math.pow(end.z - start.z, 2)
-        ) - ROAD_WIDTH * 0.5; // Adjust gap size
-        
-        if (segmentLength > 1) {
-            const sidewalkGeometry = new THREE.PlaneGeometry(SIDEWALK_WIDTH, segmentLength);
-            const sidewalkMat = sidewalkMaterial.clone();
-            sidewalkMat.map = sidewalkTexture.clone();
-            sidewalkMat.map.repeat.set(1, segmentLength / 2);
-            sidewalkMat.map.needsUpdate = true;
-
-            const sidewalk = new THREE.Mesh(sidewalkGeometry, sidewalkMat);
-            sidewalk.rotation.x = -Math.PI / 2;
-            sidewalk.rotation.z = Math.PI / 4;
-            const offset = (ROAD_WIDTH/2 + SIDEWALK_WIDTH/2);
-            
-            // Calculate center position between start and end, accounting for road width
-            const centerX = (start.x + end.x) / 2;
-            const centerZ = (start.z + end.z) / 2;
-            
-            // Apply offset perpendicular to road direction
-            sidewalk.position.set(
-                centerX + offset * Math.cos(Math.PI/4 + Math.PI/2),
-                SIDEWALK_HEIGHT + 0.003,
-                centerZ + offset * Math.sin(Math.PI/4 + Math.PI/2)
-            );
-            scene.add(sidewalk);
-        }
-    }
-
-    // Northwest diagonal with segmented sidewalk
-    const diagonalRoad2 = new THREE.Mesh(diagonalRoadGeometry, diagonalRoadMaterial.clone());
-    diagonalRoad2.rotation.x = -Math.PI / 2;
-    diagonalRoad2.rotation.z = -Math.PI / 4;
-    diagonalRoad2.position.set(-20, 0.013, -60);
-    scene.add(diagonalRoad2);
-
-    const segments2 = getDiagonalSegments(-20, -60, -Math.PI / 4);
-    for (let i = 0; i < segments2.length - 1; i++) {
-        const start = segments2[i];
-        const end = segments2[i + 1];
-        
-        // Skip if this is a road intersection segment
-        if (start.isRoadStart || start.isRoadEnd || end.isRoadStart || end.isRoadEnd) continue;
-        
-        const segmentLength = Math.sqrt(
-            Math.pow(end.x - start.x, 2) + Math.pow(end.z - start.z, 2)
-        ) - ROAD_WIDTH * 0.5; // Adjust gap size
-        
-        if (segmentLength > 1) {
-            const sidewalkGeometry = new THREE.PlaneGeometry(SIDEWALK_WIDTH, segmentLength);
-            const sidewalkMat = sidewalkMaterial.clone();
-            sidewalkMat.map = sidewalkTexture.clone();
-            sidewalkMat.map.repeat.set(1, segmentLength / 2);
-            sidewalkMat.map.needsUpdate = true;
-
-            const sidewalk = new THREE.Mesh(sidewalkGeometry, sidewalkMat);
-            sidewalk.rotation.x = -Math.PI / 2;
-            sidewalk.rotation.z = -Math.PI / 4;
-            const offset = (ROAD_WIDTH/2 + SIDEWALK_WIDTH/2);
-            
-            // Calculate center position between start and end, accounting for road width
-            const centerX = (start.x + end.x) / 2;
-            const centerZ = (start.z + end.z) / 2;
-            
-            // Apply offset perpendicular to road direction
-            sidewalk.position.set(
-                centerX + offset * Math.cos(-Math.PI/4 + Math.PI/2),
-                SIDEWALK_HEIGHT + 0.003,
-                centerZ + offset * Math.sin(-Math.PI/4 + Math.PI/2)
-            );
-            scene.add(sidewalk);
-        }
-    }
-
-    // Create intersections
-    for (const zPos of crossStreetPositions) {
-        for (const xPos of [...parallelStreetPositions, 0]) {
-            const intersectionGeometry = new THREE.CircleGeometry(INTERSECTION_SIZE / 2, 32);
-            const intersectionMaterial = new THREE.MeshStandardMaterial({
-                map: roadTexture.clone(),
-                side: THREE.DoubleSide,
-                roughness: 0.9,
-                metalness: 0.1
-            });
-            // Adjust intersection texture tiling
-            intersectionMaterial.map.repeat.set(INTERSECTION_SIZE / 2, INTERSECTION_SIZE / 2);
-            intersectionMaterial.map.needsUpdate = true;
-            
-            const intersection = new THREE.Mesh(intersectionGeometry, intersectionMaterial);
-            intersection.rotation.x = -Math.PI / 2;
-            intersection.position.set(xPos, 0.014, zPos);
-            scene.add(intersection);
-        }
-    }
-
     // --- Water Plane ---
-    /* // Remove old basic water plane
-    const waterGeometry = new THREE.PlaneGeometry(1000, 1000); // Large plane for water
-    // Basic blue water material for now
-    const waterMaterial = new THREE.MeshStandardMaterial({ 
-        color: 0x0044aa, 
-        transparent: true, 
-        opacity: 0.85, 
-        roughness: 0.2, 
-        metalness: 0.1 
-    });
-    const waterPlane = new THREE.Mesh(waterGeometry, waterMaterial);
-    waterPlane.rotation.x = -Math.PI / 2; // Lay flat
-    waterPlane.position.set(0, WATER_LEVEL_Y, 0); // Position below ground
-    scene.add(waterPlane);
-    */
-    
-    // Realistic Water
     const waterGeometry = new THREE.PlaneGeometry(10000, 10000); // Make water extensive
     const water = new Water(
         waterGeometry,
@@ -1019,8 +782,8 @@ function init() {
     window.water = water; // Make water accessible globally for animation update
     // --- End Water Plane ---
 
-    // Create Skyscrapers (Call remains here)
-    createSkyscrapers();
+    // --- Create Buildings from Editor Data ---
+    createBuildingsFromEditor();
 
     // --- Fence Loading and Creation ---
     textureLoader.load('/sprites/objects/fence.webp', (texture) => {
@@ -1054,11 +817,14 @@ function init() {
         texturesLoaded = true;
         createCharacterSprite();
         return loadTreeTextures(); 
+        return loadStreetlampTextures();
     }).then(() => {
         console.log("Tree textures loaded!");
         treeTexturesLoaded = true;
         createTrees();
         createGrassPatches();
+        streetlampTexturesLoaded = true;
+        createStreetlamps();
         // Load car textures next
         return loadCarTextures();
     }).then(() => {
@@ -1439,6 +1205,48 @@ async function loadTreeTextures() {
     await Promise.all(promises);
 }
 
+async function loadStreetlampTextures() {
+    const promises = [];
+    const streetlampPrefix = "9b31762a-c71b-4d45-9c04-5a1ba9eb0964_angle_0_0_0000";
+    const basePath = '/sprites/objects/streetlamp/';
+    const framePadded = '0000';
+
+    for (const angle of STREETLAMP_ANGLES) {
+        const angleFloor = Math.floor(angle);
+        const decimalPartTimes10 = (angle - angleFloor) * 10;
+        let angleDecimal;
+        if (Math.abs(decimalPartTimes10 - 2.5) < 0.01) {
+            angleDecimal = 2;
+        } else if (Math.abs(decimalPartTimes10 - 7.5) < 0.01) {
+            angleDecimal = 8;
+        } else {
+            angleDecimal = Math.round(decimalPartTimes10);
+        }
+        const angleString = `${angleFloor}_${angleDecimal}`;
+        const fileName = `${streetlampPrefix}_angle_${angleString}_${framePadded}.webp`;
+        const filePath = basePath + fileName;
+
+        const promise = new Promise((resolve, reject) => {
+            textureLoader.load(filePath,
+                (texture) => {
+                    texture.magFilter = THREE.LinearFilter;
+                    texture.minFilter = THREE.LinearFilter;
+                    streetlampTextures[angle] = texture;
+                    resolve(texture);
+                },
+                undefined,
+                (err) => {
+                    console.error(`Failed to load streetlamp texture: ${filePath}`, err);
+                    resolve(null);
+                }
+            );
+        });
+        promises.push(promise);
+    }
+    await Promise.all(promises);
+    streetlampTexturesLoaded = true;
+}
+
 async function loadCarTextures() {
     const promises = [];
     const carPrefix = CAR_SPRITE_PREFIX; // Use the defined constant
@@ -1803,6 +1611,41 @@ function createTrees() {
     console.log(`Created ${treeSprites.length} trees.`);
 }
 
+function createStreetlamps() {
+    // Find the first available texture, trying angle 0 first
+    let initialStreetlampTexture = streetlampTextures[0];
+    if (!initialStreetlampTexture) {
+        const keys = Object.keys(streetlampTextures);
+        if (keys.length > 0) {
+            const firstKey = keys[0]; // Might be "0" or "5.625" or similar
+            initialStreetlampTexture = streetlampTextures[firstKey];
+            console.warn(`Initial streetlamp texture (angle 0) not loaded. Using angle ${firstKey} instead.`);
+        }
+    }
+
+    if (!initialStreetlampTexture) {
+        console.error("No streetlamp textures loaded at all, cannot create streetlamps.");
+        return; // Exit if no textures loaded
+    }
+
+    // Continue with the rest of the function using initialStreetlampTexture
+
+    for (const position of streetlampPositions) {
+        const material = new THREE.MeshBasicMaterial({
+            map: initialStreetlampTexture.clone(), // Use the found texture
+            transparent: true,
+            alphaTest: 0.5,
+            side: THREE.DoubleSide
+        });
+        const geometry = new THREE.PlaneGeometry(STREETLAMP_SCALE, STREETLAMP_SCALE);
+        const streetlampSprite = new THREE.Mesh(geometry, material);
+        streetlampSprite.position.copy(position);
+        scene.add(streetlampSprite);
+        streetlampSprites.push(streetlampSprite);
+    }
+    console.log(`Created ${streetlampSprites.length} streetlamps.`);
+}
+
 function createGrassPatches() {
     if (!grassTexture) {
         console.warn("Grass texture not loaded, cannot create grass patches.");
@@ -1987,67 +1830,7 @@ let car9 = {
 };
 */
 
-function createNpcs() {
-    if (!npcTexturesLoaded || npcTextures.length === 0) {
-        console.warn("NPC textures not loaded or empty, cannot create NPCs.");
-        return;
-    }
 
-    const npcScale = SPRITE_SCALE * 1.0; // Make NPCs same size as player
-    const npcYPos = npcScale / 2 - 0.075; // Same ground logic as player
-
-    for (let i = 0; i < NUM_NPCS; i++) {
-        const startX = (Math.random() - 0.5) * 40; // Spread them out initially
-        const startZ = -5 - Math.random() * 40;
-        const startPos = new THREE.Vector3(startX, npcYPos, startZ);
-
-        // Ensure they don't start on road
-        if (Math.abs(startPos.x) < ROAD_WIDTH / 2 + 1) startPos.x += Math.sign(startPos.x || 1) * (ROAD_WIDTH / 2 + 2);
-
-        // Randomly assign an NPC type
-        const npcTypeIndex = Math.floor(Math.random() * npcTextures.length);
-        const assignedNpcTextures = npcTextures[npcTypeIndex];
-
-        const initialState = Math.random() < 0.5 ? 'idle' : 'walk';
-        const initialAngle = NPC_ANGLES[Math.floor(Math.random() * NPC_ANGLES.length)];
-        const initialTexture = assignedNpcTextures[initialState]?.[initialAngle]?.[0];
-
-        if (!initialTexture) {
-            console.warn(`Could not get initial texture for NPC ${i} (type ${npcTypeIndex}), state: ${initialState}, angle: ${initialAngle}. Skipping.`);
-            continue;
-        }
-
-        const material = new THREE.MeshBasicMaterial({
-            map: initialTexture,
-            transparent: true,
-            alphaTest: 0.5,
-            side: THREE.DoubleSide,
-            // Give different NPC types slightly different base tints
-            color: new THREE.Color().setHSL(Math.random() * 0.1 + 0.0, 0.0, 0.7 + Math.random() * 0.2) // subtle grey variation
-            // color: 0xbbbbbb // Slightly different tint for NPCs
-        });
-        const geometry = new THREE.PlaneGeometry(npcScale, npcScale);
-        const sprite = new THREE.Mesh(geometry, material);
-        sprite.position.copy(startPos);
-        scene.add(sprite);
-
-        npcs.push({
-            id: i,
-            npcTypeIndex: npcTypeIndex, // Store which texture set this NPC uses
-            position: startPos,
-            velocity: new THREE.Vector3(),
-            forward: new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0,1,0), initialAngle * Math.PI / 180),
-            state: initialState,
-            targetPosition: startPos.clone(), // Initially target current spot
-            timeUntilNextDecision: NPC_MIN_DECISION_TIME + Math.random() * (NPC_MAX_DECISION_TIME - NPC_MIN_DECISION_TIME),
-            currentAngle: initialAngle,
-            currentFrame: 0,
-            frameTime: 0,
-            sprite: sprite,
-        });
-    }
-    console.log(`Created ${npcs.length} NPCs.`);
-}
 
 // --- POW Effect Functions ---
 function createPowEffect(position, effectType = 'punch') {
@@ -2095,9 +1878,8 @@ function updatePowEffects(deltaTime) {
         if (effect.lifetime <= 0) {
             // Remove effect
             scene.remove(effect.sprite);
-            // Dispose geometry and material if needed, though likely shared or minor overhead
-            // effect.sprite.geometry.dispose(); 
-            // effect.sprite.material.dispose();
+            if (effect.sprite.geometry) effect.sprite.geometry.dispose();
+            if (effect.sprite.material) effect.sprite.material.dispose();
             activePowEffects.splice(i, 1); // Remove from array
         } else {
             // Billboard
@@ -2132,6 +1914,7 @@ function onWindowResize() {
 
 function onKeyDown(event) {
     // Allow movement keys even if punching, but movement will be blocked in updateCharacter
+    if (!event || !event.code) return;
     keyboard[event.code] = true;
 
     // Handle Jump (Takes priority over starting a punch)
@@ -2151,8 +1934,8 @@ function onKeyDown(event) {
             let closestCar = null;
             let minDistSq = INTERACTION_DISTANCE * INTERACTION_DISTANCE;
 
-            // Iterate through all cars to find the closest one within range
-            for (const targetCar of allCars) {
+            // Iterate through all cars (player and traffic) to find the closest one within range
+            for (const targetCar of allCars.concat(trafficCars)) {
                 if (!targetCar.sprite) continue; // Skip if sprite doesn't exist
                 const distSq = character.position.distanceToSquared(targetCar.position);
                 if (distSq < minDistSq) {
@@ -2450,50 +2233,23 @@ function updateCharacter(deltaTime) {
     }
 
     // Car collision check (only if not already collided with tree)
-    if (!collisionDetected && car.sprite) { // Check if car exists
-        const dxCar = potentialPosition.x - car.position.x;
-        const dzCar = potentialPosition.z - car.position.z;
-        const distSqCar = dxCar * dxCar + dzCar * dzCar;
-        const radiiSumCar = CHARACTER_COLLISION_RADIUS + CAR_COLLISION_RADIUS;
-        if (distSqCar < radiiSumCar * radiiSumCar) {
-            collisionDetected = true;
-            // No break needed here as it's the last check
-        }
-    }
-    // Add collision check for car 2
-    if (!collisionDetected && car2.sprite) { // Check if car2 exists
-        const dxCar2 = potentialPosition.x - car2.position.x;
-        const dzCar2 = potentialPosition.z - car2.position.z;
-        const distSqCar2 = dxCar2 * dxCar2 + dzCar2 * dzCar2;
-        const radiiSumCar2 = CHARACTER_COLLISION_RADIUS + CAR_COLLISION_RADIUS; // Assume same radius
-        if (distSqCar2 < radiiSumCar2 * radiiSumCar2) {
-            collisionDetected = true;
-        }
-    }
-    // Add collision check for car 3
-    if (!collisionDetected && car3.sprite) { 
-        const dxCar3 = potentialPosition.x - car3.position.x;
-        const dzCar3 = potentialPosition.z - car3.position.z;
-        const distSqCar3 = dxCar3 * dxCar3 + dzCar3 * dzCar3;
-        const radiiSumCar3 = CHARACTER_COLLISION_RADIUS + CAR_COLLISION_RADIUS;
-        if (distSqCar3 < radiiSumCar3 * radiiSumCar3) {
-            collisionDetected = true;
-        }
-    }
-    // Add collision check for car 4
-    if (!collisionDetected && car4.sprite) { 
-        const dxCar4 = potentialPosition.x - car4.position.x;
-        const dzCar4 = potentialPosition.z - car4.position.z;
-        const distSqCar4 = dxCar4 * dxCar4 + dzCar4 * dzCar4;
-        const radiiSumCar4 = CHARACTER_COLLISION_RADIUS + CAR_COLLISION_RADIUS;
-        if (distSqCar4 < radiiSumCar4 * radiiSumCar4) {
-            collisionDetected = true;
+    if (!collisionDetected) { // Check if car exists
+        for (const carObj of allCars.concat(trafficCars)) {
+            if (!carObj.sprite) continue;
+            const dx = potentialPosition.x - carObj.position.x;
+            const dz = potentialPosition.z - carObj.position.z;
+            const distSq = dx * dx + dz * dz;
+            const radiiSum = CHARACTER_COLLISION_RADIUS + CAR_COLLISION_RADIUS;
+            if (distSq < radiiSum * radiiSum) {
+                collisionDetected = true;
+                break;
+            }
         }
     }
 
     // Building collision check
     if (!collisionDetected) {
-        if (isCollidingWithSkyscraper(potentialPosition, CHARACTER_COLLISION_RADIUS)) {
+        if (isCollidingWithBuilding(potentialPosition, CHARACTER_COLLISION_RADIUS)) {
             collisionDetected = true;
         }
     }
@@ -2824,7 +2580,7 @@ function updateCar(drivingCar, deltaTime) { // Accept the car object being drive
         }
     }
     // --- Refactored Car-vs-Car Collision Check ---
-    for (const otherCar of allCars) {
+    for (const otherCar of allCars.concat(trafficCars)) {
         // Skip checking against self or cars without sprites
         if (otherCar === drivingCar || !otherCar.sprite) continue; 
 
@@ -2850,13 +2606,34 @@ function updateCar(drivingCar, deltaTime) { // Accept the car object being drive
     // --- End Refactored Check ---
 
     // Collision check vs Buildings
-    let buildingCollisionPoint = null; 
-    if (!collisionDetected) { // Only check if no other collision detected yet
-         buildingCollisionPoint = isCollidingWithSkyscraper(potentialPosition, CAR_COLLISION_RADIUS);
-         if (buildingCollisionPoint) {
-             // Calculate rebound vector from building center (approximation)
-             const reboundDir = drivingCar.position.clone().sub(buildingCollisionPoint).normalize();
-             reboundDir.y = 0; // Keep rebound horizontal
+    let buildingCollision = null;
+    if (!collisionDetected) {
+        // Find the first building that collides
+        for (const b of placedBuildings) {
+            if (typeof b.x !== 'number' || typeof b.z !== 'number') continue;
+            let heightMultiplier = 8;
+            if (b.wallTextureKey && b.wallTextureKey.startsWith('skyscraper')) {
+                heightMultiplier = 30;
+            }
+            const halfW = (b.width || 1) * 8 / 2;
+            const halfD = (b.depth || 1) * 8 / 2;
+            const minX = b.x - halfW;
+            const maxX = b.x + halfW;
+            const minZ = b.z - halfD;
+            const maxZ = b.z + halfD;
+            // Circle vs AABB collision (XZ plane)
+            const closestX = Math.max(minX, Math.min(potentialPosition.x, maxX));
+            const closestZ = Math.max(minZ, Math.min(potentialPosition.z, maxZ));
+            const distanceSq = (potentialPosition.x - closestX) ** 2 + (potentialPosition.z - closestZ) ** 2;
+            if (distanceSq < CAR_COLLISION_RADIUS * CAR_COLLISION_RADIUS) {
+                buildingCollision = b;
+                break;
+            }
+        }
+        if (buildingCollision) {
+            // Rebound from building center
+            const reboundDir = drivingCar.position.clone().sub(new THREE.Vector3(buildingCollision.x, 0, buildingCollision.z)).normalize();
+            reboundDir.y = 0;
              drivingCar.velocity.copy(reboundDir).multiplyScalar(CAR_REBOUND_SPEED); 
              collisionDetected = true;
          }
@@ -3075,349 +2852,286 @@ function updateCamera(deltaTime) {
     camera.lookAt(camera.position.clone().add(currentLookAt));
 }
 
-function updateNpcs(deltaTime) {
-    if (!npcTexturesLoaded || npcTextures.length === 0) return;
-
-    const angleIncrement = NPC_ANGLE_INCREMENT;
-    const numAngles = NPC_ANGLES.length;
-    const npcYPos = (SPRITE_SCALE * 1.0) / 2 - 0.075; // Recalculate based on scale used in createNpcs
-
-    for (let i = 0; i < npcs.length; i++) {
-        const npc = npcs[i];
-        const currentNpcTextures = npcTextures[npc.npcTypeIndex]; // Get textures for this NPC's type
-
-        // --- Handle Hit State ---
-        if (npc.state === 'hit') {
-            // Apply gravity
-            npc.velocity.y -= GRAVITY * deltaTime;
-            // Update position
-            npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime));
-            npc.sprite.position.copy(npc.position);
-            // Check for ground hit
-            if (npc.position.y <= npcYPos) {
-                npc.position.y = npcYPos;
-                npc.velocity.set(0,0,0);
-                npc.state = 'idle'; // TODO: Maybe a downed state?
-                npc.currentFrame = 0;
-                npc.frameTime = 0;
-                npc.timeUntilNextDecision = 1.0 + Math.random() * 2.0; // Recover quickly
-            }
-            // Ensure billboarding even in hit state
-            const lookAtTarget = new THREE.Vector3(camera.position.x, npc.sprite.position.y, camera.position.z);
-            npc.sprite.lookAt(lookAtTarget);
-            continue; // Skip normal logic if hit
-        }
-
-        // --- Decision Making (only if not hit) ---
-        npc.timeUntilNextDecision -= deltaTime;
-        if (npc.timeUntilNextDecision <= 0) {
-            const newState = Math.random() < 0.6 ? 'walk' : 'idle'; // Bias towards walking
-            npc.state = newState;
-            npc.currentFrame = 0; // Reset frame on state change
-            npc.frameTime = 0;
-
-            if (newState === 'walk') {
-                // Set fixed forward direction for walking (+Z axis = 0 degrees)
-                npc.forward.set(0, 0, 1);
-                // Removed random target position calculation
-            } else { // Idle
-                npc.velocity.set(0, 0, 0);
-                // Optionally keep the forward vector from the last walk? Or reset?
-                // Let's keep the last forward vector for idle state angle calculation.
-                npc.targetPosition.copy(npc.position); // No target when idle
-            }
-            npc.timeUntilNextDecision = NPC_MIN_DECISION_TIME + Math.random() * (NPC_MAX_DECISION_TIME - NPC_MIN_DECISION_TIME);
-        }
-
-        // --- Movement (only if not hit) ---
-        // let targetReached = false; // Removed targetReached logic
-        if (npc.state === 'walk') {
-            // Always move in the fixed forward direction
-            npc.velocity.copy(npc.forward).multiplyScalar(NPC_WALK_SPEED);
-            // Removed target checking logic, NPC walks until decision timer changes state or collision
-        }
-
-        // --- Collision Check (only if not hit) ---
-        const potentialPosition = npc.position.clone().add(npc.velocity.clone().multiplyScalar(deltaTime));
-        let collisionDetected = false;
-        // Vs Trees
-        for (const treePos of treePositions) {
-            const radiiSum = NPC_COLLISION_RADIUS + TREE_COLLISION_RADIUS;
-            if (potentialPosition.distanceToSquared(treePos) < radiiSum * radiiSum) {
-                collisionDetected = true; break;
-            }
-        }
-        // Vs Car
-        if (!collisionDetected && car.sprite && currentDrivingCar !== car) {
-             const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS;
-             const distSq = potentialPosition.distanceToSquared(car.position);
-             if (distSq < radiiSum * radiiSum) {
-                 collisionDetected = true;
-                 // --- Static Car 1 Hit NPC Logic --- 
-                 if (npc.state !== 'hit') { 
-                     console.log("Static Car 1 hit NPC!", npc.id);
-                     npc.state = 'hit';
-                     // Impulse from car's forward (or default if static)
-                     let impulseDirection = car.forward.clone(); 
-                     if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1); // Default impulse
-                     impulseDirection.normalize();
-                     npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5); // Less impulse
-                     npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
-                     npc.timeUntilNextDecision = 10; 
-                     createPowEffect(npc.position);
-                     npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
-                     npc.sprite.position.copy(npc.position);
-                 }
-              }
-         }
-         // Vs Car 2
-         if (!collisionDetected && car2.sprite && currentDrivingCar !== car2) {
-              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
-              const distSq = potentialPosition.distanceToSquared(car2.position);
-              if (distSq < radiiSum * radiiSum) {
-                  collisionDetected = true;
-                  // --- Static Car 2 Hit NPC Logic --- 
-                  if (npc.state !== 'hit') { 
-                      console.log("Static Car 2 hit NPC!", npc.id);
-                      npc.state = 'hit';
-                      let impulseDirection = car2.forward.clone();
-                      if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1);
-                      impulseDirection.normalize();
-                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
-                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
-                      npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position);
-                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
-                      npc.sprite.position.copy(npc.position);
-                  }
-               }
-          }
-         // Vs Car 3
-         if (!collisionDetected && car3.sprite && currentDrivingCar !== car3) {
-              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
-              const distSq = potentialPosition.distanceToSquared(car3.position);
-              if (distSq < radiiSum * radiiSum) {
-                  collisionDetected = true;
-                  // --- Static Car 3 Hit NPC Logic --- 
-                  if (npc.state !== 'hit') { 
-                      console.log("Static Car 3 hit NPC!", npc.id);
-                      npc.state = 'hit';
-                      let impulseDirection = car3.forward.clone();
-                      if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1);
-                      impulseDirection.normalize();
-                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
-                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
-                      npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position);
-                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
-                      npc.sprite.position.copy(npc.position);
-                  }
-               }
-          }
-         // Vs Car 4
-         if (!collisionDetected && car4.sprite && currentDrivingCar !== car4) {
-              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
-              const distSq = potentialPosition.distanceToSquared(car4.position);
-              if (distSq < radiiSum * radiiSum) {
-                  collisionDetected = true;
-                  // --- Static Car 4 Hit NPC Logic --- 
-                  if (npc.state !== 'hit') { 
-                      console.log("Static Car 4 hit NPC!", npc.id);
-                      npc.state = 'hit';
-                      let impulseDirection = car4.forward.clone();
-                      if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1);
-                      impulseDirection.normalize();
-                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
-                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
-                      npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position);
-                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
-                      npc.sprite.position.copy(npc.position);
-                  }
-               }
-          }
-         // Vs Car 5
-         if (!collisionDetected && car5.sprite && currentDrivingCar !== car5) {
-              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
-              const distSq = potentialPosition.distanceToSquared(car5.position);
-              if (distSq < radiiSum * radiiSum) {
-                  collisionDetected = true;
-                  // --- Static Car 5 Hit NPC Logic --- 
-                  if (npc.state !== 'hit') { 
-                      console.log("Static Car 5 hit NPC!", npc.id);
-                      npc.state = 'hit';
-                      let impulseDirection = car5.forward.clone();
-                      if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1);
-                      impulseDirection.normalize();
-                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
-                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
-                      npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position);
-                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
-                      npc.sprite.position.copy(npc.position);
-                  }
-               }
-          }
-         // Vs Car 6
-         if (!collisionDetected && car6.sprite && currentDrivingCar !== car6) {
-              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
-              const distSq = potentialPosition.distanceToSquared(car6.position);
-              if (distSq < radiiSum * radiiSum) {
-                  collisionDetected = true;
-                  // --- Static Car 6 Hit NPC Logic --- 
-                  if (npc.state !== 'hit') { 
-                      console.log("Static Car 6 hit NPC!", npc.id);
-                      npc.state = 'hit';
-                      let impulseDirection = car6.forward.clone();
-                      if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1);
-                      impulseDirection.normalize();
-                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
-                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
-                      npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position);
-                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
-                      npc.sprite.position.copy(npc.position);
-                  }
-               }
-          }
-         // Vs Car 7
-         if (!collisionDetected && car7.sprite && currentDrivingCar !== car7) {
-              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
-              const distSq = potentialPosition.distanceToSquared(car7.position);
-              if (distSq < radiiSum * radiiSum) {
-                  collisionDetected = true;
-                  // --- Static Car 7 Hit NPC Logic --- 
-                  if (npc.state !== 'hit') { 
-                      console.log("Static Car 7 hit NPC!", npc.id);
-                      npc.state = 'hit';
-                      let impulseDirection = car7.forward.clone();
-                      if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1);
-                      impulseDirection.normalize();
-                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
-                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
-                      npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position);
-                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
-                      npc.sprite.position.copy(npc.position);
-                  }
-               }
-          }
-         // Vs Car 8
-         /*
-         if (!collisionDetected && car8.sprite && currentDrivingCar !== car8) {
-              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
-              const distSq = potentialPosition.distanceToSquared(car8.position);
-              if (distSq < radiiSum * radiiSum) {
-                  collisionDetected = true;
-                  // --- Static Car 8 Hit NPC Logic --- 
-                  if (npc.state !== 'hit') { 
-                      console.log("Static Car 8 hit NPC!", npc.id);
-                      npc.state = 'hit';
-                      let impulseDirection = car8.forward.clone();
-                      if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1);
-                      impulseDirection.normalize();
-                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
-                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
-                      npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
-                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
-                      npc.sprite.position.copy(npc.position);
-                  }
-               }
-          }
-         */
-         // Vs Car 9
-         /*
-         if (!collisionDetected && car9.sprite && currentDrivingCar !== car9) {
-              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
-              const distSq = potentialPosition.distanceToSquared(car9.position);
-              if (distSq < radiiSum * radiiSum) {
-                  collisionDetected = true;
-                  // --- Static Car 9 Hit NPC Logic --- 
-                  if (npc.state !== 'hit') { 
-                      console.log("Static Car 9 hit NPC!", npc.id);
-                      npc.state = 'hit';
-                      let impulseDirection = car9.forward.clone();
-                      if(impulseDirection.lengthSq() < 0.01) impulseDirection.set(0,0,1);
-                      impulseDirection.normalize();
-                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL * 0.5);
-                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL * 0.5;
-                      npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
-                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
-                      npc.sprite.position.copy(npc.position);
-                  }
-               }
-          }
-         */
-         // Vs DRIVEN Car (if any)
-         if (!collisionDetected && playerControlMode === 'car' && currentDrivingCar && currentDrivingCar.sprite) {
-              const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS; 
-              const distSq = potentialPosition.distanceToSquared(currentDrivingCar.position);
-              if (distSq < radiiSum * radiiSum) {
-                  collisionDetected = true;
-                  // --- DRIVEN Car Hit NPC Logic --- 
-                  if (npc.state !== 'hit') { 
-                      console.log("DRIVEN Car hit NPC!", npc.id);
-                      npc.state = 'hit';
-                      let impulseDirection = currentDrivingCar.velocity.clone(); 
-                      if (impulseDirection.lengthSq() < 0.01) {
-                          impulseDirection = currentDrivingCar.forward.clone();
-                      }
-                      impulseDirection.normalize();
-                      npc.velocity.copy(impulseDirection).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL);
-                      npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL; 
-                      npc.timeUntilNextDecision = 10; 
-                      createPowEffect(npc.position, 'car'); // Use 'car' type for BANG
-                      npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime)); 
-                      npc.sprite.position.copy(npc.position);
-                  }
-                  // --- End DRIVEN Car Hit NPC Logic ---
-               }
-          }
-         // Vs Player
-        if (!collisionDetected && playerControlMode === 'character') {
-             const radiiSum = NPC_COLLISION_RADIUS + CHARACTER_COLLISION_RADIUS;
-             if (potentialPosition.distanceToSquared(character.position) < radiiSum * radiiSum) {
-                collisionDetected = true;
-             }
-        }
-        // Vs Other NPCs
-        if (!collisionDetected) {
-            for (let j = 0; j < npcs.length; j++) {
-                if (i === j) continue; // Don't check self
-                const otherNpc = npcs[j];
-                const radiiSum = NPC_COLLISION_RADIUS + NPC_COLLISION_RADIUS;
-                if (potentialPosition.distanceToSquared(otherNpc.position) < radiiSum * radiiSum) {
-                    collisionDetected = true; break;
+// --- NPC Tile Helper Functions ---
+function worldToTile(x, z) {
+    // Map world coordinates to floorTiles indices
+    // Assumes tile size and map centering as in createEditorFloor
+    const TILE_SIZE = 6;
+    const MAP_HEIGHT = floorTiles.length;
+    const MAP_WIDTH = floorTiles[0]?.length || 0;
+    const col = Math.floor((x + (MAP_WIDTH * TILE_SIZE) / 2) / TILE_SIZE);
+    const row = Math.floor((z + (MAP_HEIGHT * TILE_SIZE) / 2) / TILE_SIZE);
+    return { row, col };
+}
+function isValidNpcTile(x, z) {
+    const { row, col } = worldToTile(x, z);
+    if (
+        row < 0 || row >= floorTiles.length ||
+        col < 0 || col >= floorTiles[0].length
+    ) return false;
+    const t = floorTiles[row][col];
+    return t === 'sidewalk' || t === 'brick' || t === 'grass';
+}
+function findNearestValidTile(x, z, maxRadius = 20) {
+    // Spiral search for nearest valid tile
+    const { row: startRow, col: startCol } = worldToTile(x, z);
+    for (let r = 1; r <= maxRadius; r++) {
+        for (let dr = -r; dr <= r; dr++) {
+            for (let dc = -r; dc <= r; dc++) {
+                if (Math.abs(dr) !== r && Math.abs(dc) !== r) continue;
+                const row = startRow + dr;
+                const col = startCol + dc;
+                if (
+                    row >= 0 && row < floorTiles.length &&
+                    col >= 0 && col < floorTiles[0].length
+                ) {
+                    const t = floorTiles[row][col];
+                    if (t === 'sidewalk' || t === 'brick' || t === 'grass') {
+                        // Convert back to world coordinates
+                        const TILE_SIZE = 6;
+                        const wx = (col - floorTiles[0].length / 2) * TILE_SIZE + TILE_SIZE / 2;
+                        const wz = (row - floorTiles.length / 2) * TILE_SIZE + TILE_SIZE / 2;
+                        return { x: wx, z: wz };
+                    }
                 }
             }
         }
-        // Vs Buildings
-        if (!collisionDetected) {
-            if (isCollidingWithSkyscraper(potentialPosition, NPC_COLLISION_RADIUS)) {
-                collisionDetected = true;
+    }
+    return null;
+}
+
+// --- New NPC System ---
+const NPC_DESIRED_COUNT = 20;
+const NPC_KEEP_RADIUS = 50;
+function getPlayerPos() {
+    return playerControlMode === 'character' ? character.position : (currentDrivingCar ? currentDrivingCar.position : character.position);
+}
+function getRandomValidNpcSpawnNearPlayer(radiusMin, radiusMax) {
+    // Try up to 50 times to find a valid spot
+    const playerPos = getPlayerPos();
+    for (let i = 0; i < 50; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = radiusMin + Math.random() * (radiusMax - radiusMin);
+        const x = playerPos.x + Math.cos(angle) * dist;
+        const z = playerPos.z + Math.sin(angle) * dist;
+        if (!isValidNpcTile(x, z)) continue;
+        // Check for overlap with other NPCs, trees, cars
+        let overlap = false;
+        for (const npc of npcs) {
+            if (npc.position.distanceToSquared(new THREE.Vector3(x, npc.position.y, z)) < 2.0) { overlap = true; break; }
+        }
+        for (const tree of treePositions) {
+            if (tree.distanceToSquared(new THREE.Vector3(x, tree.y, z)) < 2.0) { overlap = true; break; }
+        }
+        for (const carObj of allCars.concat(trafficCars)) {
+            if (carObj.sprite && carObj.position.distanceToSquared(new THREE.Vector3(x, carObj.position.y, z)) < 2.0) { overlap = true; break; }
+        }
+        if (!overlap) {
+            return { x, z };
+        }
+    }
+    return null;
+}
+function createNpcAt(x, z, npcTypeIndex = null) {
+    const npcScale = SPRITE_SCALE * 1.0;
+    const npcYPos = npcScale / 2 - 0.075;
+    if (npcTypeIndex === null) {
+        npcTypeIndex = Math.floor(Math.random() * npcTextures.length);
+    }
+    const assignedNpcTextures = npcTextures[npcTypeIndex];
+    const initialState = Math.random() < 0.5 ? 'idle' : 'walk';
+    const initialAngle = NPC_ANGLES[Math.floor(Math.random() * NPC_ANGLES.length)];
+    const initialTexture = assignedNpcTextures[initialState]?.[initialAngle]?.[0];
+    if (!initialTexture) return null;
+    const material = new THREE.MeshBasicMaterial({
+        map: initialTexture,
+        transparent: true,
+        alphaTest: 0.5,
+        side: THREE.DoubleSide,
+        color: new THREE.Color().setHSL(Math.random(), 0.1, 0.7 + Math.random() * 0.2)
+    });
+    const geometry = new THREE.PlaneGeometry(npcScale, npcScale);
+    const sprite = new THREE.Mesh(geometry, material);
+    sprite.position.set(x, npcYPos, z);
+    scene.add(sprite);
+    const npc = {
+        id: Math.random().toString(36).slice(2),
+        npcTypeIndex,
+        position: new THREE.Vector3(x, npcYPos, z),
+        velocity: new THREE.Vector3(),
+        forward: new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0,1,0), initialAngle * Math.PI / 180),
+        state: initialState,
+        targetPosition: new THREE.Vector3(x, npcYPos, z),
+        timeUntilNextDecision: NPC_MIN_DECISION_TIME + Math.random() * (NPC_MAX_DECISION_TIME - NPC_MIN_DECISION_TIME),
+        currentAngle: initialAngle,
+        currentFrame: 0,
+        frameTime: 0,
+        sprite,
+        returningToValid: false,
+    };
+    npcs.push(npc);
+    return npc;
+}
+function removeNpc(npc) {
+    scene.remove(npc.sprite);
+    if (npc.sprite.geometry) npc.sprite.geometry.dispose();
+    if (npc.sprite.material) npc.sprite.material.dispose();
+    const idx = npcs.indexOf(npc);
+    if (idx !== -1) npcs.splice(idx, 1);
+}
+// Replace createNpcs with a stub (no-op)
+function createNpcs() {}
+
+// --- Overhauled updateNpcs ---
+function updateNpcs(deltaTime) {
+    if (!npcTexturesLoaded || npcTextures.length === 0) return;
+    const playerPos = getPlayerPos();
+    // 1. Despawn NPCs too far from player
+    for (let i = npcs.length - 1; i >= 0; i--) {
+        const npc = npcs[i];
+        if (npc.position.distanceTo(playerPos) > NPC_KEEP_RADIUS + 10) {
+            removeNpc(npc);
+        }
+    }
+    // 2. Spawn new NPCs if needed
+    while (npcs.length < NPC_DESIRED_COUNT) {
+        const pos = getRandomValidNpcSpawnNearPlayer(NPC_KEEP_RADIUS * 0.7, NPC_KEEP_RADIUS);
+        if (!pos) break;
+        // Ensure diversity: try to avoid repeating last 3 types
+        let lastTypes = npcs.slice(-3).map(n => n.npcTypeIndex);
+        let typeIdx;
+        let tries = 0;
+        do {
+            typeIdx = Math.floor(Math.random() * npcTextures.length);
+            tries++;
+        } while (lastTypes.includes(typeIdx) && tries < 10);
+        createNpcAt(pos.x, pos.z, typeIdx);
+    }
+    // 3. Update all NPCs
+    const angleIncrement = NPC_ANGLE_INCREMENT;
+    const numAngles = NPC_ANGLES.length;
+    const npcYPos = (SPRITE_SCALE * 1.0) / 2 - 0.075;
+    for (let i = 0; i < npcs.length; i++) {
+        const npc = npcs[i];
+        const currentNpcTextures = npcTextures[npc.npcTypeIndex];
+        // --- Handle Hit State ---
+        if (npc.state === 'hit') {
+            npc.velocity.y -= GRAVITY * deltaTime;
+            npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime));
+            npc.sprite.position.copy(npc.position);
+            if (npc.position.y <= npcYPos) {
+                npc.position.y = npcYPos;
+                npc.velocity.set(0,0,0);
+                npc.state = 'idle';
+                npc.currentFrame = 0;
+                npc.frameTime = 0;
+                npc.timeUntilNextDecision = 1.0 + Math.random() * 2.0;
+            }
+            const lookAtTarget = new THREE.Vector3(camera.position.x, npc.sprite.position.y, camera.position.z);
+            npc.sprite.lookAt(lookAtTarget);
+            continue;
+        }
+        // --- Car-NPC collision (restored and improved) ---
+        let carHit = false;
+        let carImpulse = null;
+        for (const carObj of allCars.concat(trafficCars)) {
+            if (!carObj.sprite) continue;
+            const radiiSum = NPC_COLLISION_RADIUS + CAR_COLLISION_RADIUS;
+            if (npc.position.distanceToSquared(carObj.position) < radiiSum * radiiSum) {
+                carHit = true;
+                // Use car's velocity if moving, else forward
+                carImpulse = carObj.velocity.clone();
+                if (carImpulse.lengthSq() < 0.01) carImpulse = carObj.forward.clone();
+                carImpulse.normalize();
+                break;
             }
         }
-        
-        // --- Position Update (only if not hit) ---
-        if (!collisionDetected) {
-            npc.position.add(npc.velocity.clone().multiplyScalar(deltaTime));
-        } else {
-             // Stop velocity ONLY if collision detected AND npc is NOT in the hit state
-             // This prevents the car hit impulse from being immediately zeroed.
-            if (npc.state !== 'hit') { 
-                npc.velocity.set(0, 0, 0); // Stop if collision
+        if (carHit) {
+            npc.state = 'hit';
+            npc.velocity.copy(carImpulse).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL);
+            npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL;
+            npc.timeUntilNextDecision = 10;
+            createPowEffect(npc.position, 'car'); // Use BANG effect
+            continue;
+        }
+        // --- If off valid tile, walk back ---
+        if (!isValidNpcTile(npc.position.x, npc.position.z)) {
+            if (!npc.returningToValid) {
+                const nearest = findNearestValidTile(npc.position.x, npc.position.z, 20);
+                if (nearest) {
+                    npc.targetPosition = new THREE.Vector3(nearest.x, npcYPos, nearest.z);
+                    npc.returningToValid = true;
+                }
             }
-             if (npc.state === 'walk') { // If walking and collided, choose new target soon
-                 npc.timeUntilNextDecision = 0.2 + Math.random() * 0.5;
-                 // npc.targetPosition.copy(npc.position); // No target concept anymore
-             }
+            // Move toward targetPosition
+            const dir = npc.targetPosition.clone().sub(npc.position); dir.y = 0;
+            if (dir.lengthSq() > 0.01) {
+                dir.normalize();
+                npc.forward.copy(dir);
+                npc.velocity.copy(dir).multiplyScalar(NPC_WALK_SPEED * 1.2);
+                npc.state = 'walk';
+            } else {
+                npc.returningToValid = false;
+                npc.velocity.set(0,0,0);
+                npc.state = 'idle';
+            }
+        } else {
+            npc.returningToValid = false;
+            // --- Decision Making ---
+            npc.timeUntilNextDecision -= deltaTime;
+            if (npc.timeUntilNextDecision <= 0) {
+                const newState = Math.random() < 0.6 ? 'walk' : 'idle';
+                npc.state = newState;
+                npc.currentFrame = 0;
+                npc.frameTime = 0;
+                if (newState === 'walk') {
+                    // Pick a random valid direction
+                    let tries = 0;
+                    let found = false;
+                    while (tries < 10 && !found) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const dir = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
+                        const testPos = npc.position.clone().add(dir.clone().multiplyScalar(2.5));
+                        if (isValidNpcTile(testPos.x, testPos.z)) {
+                            npc.forward.copy(dir);
+                            found = true;
+                        }
+                        tries++;
+                    }
+                    if (!found) npc.forward.set(0,0,1);
+                } else {
+                    npc.velocity.set(0,0,0);
+                }
+                npc.timeUntilNextDecision = NPC_MIN_DECISION_TIME + Math.random() * (NPC_MAX_DECISION_TIME - NPC_MIN_DECISION_TIME);
+            }
+            // --- Movement ---
+            if (npc.state === 'walk') {
+                npc.velocity.copy(npc.forward).multiplyScalar(NPC_WALK_SPEED);
+            } else {
+                npc.velocity.set(0,0,0);
+            }
+        }
+        // --- Collision Check (trees, npcs, buildings) ---
+        const potentialPosition = npc.position.clone().add(npc.velocity.clone().multiplyScalar(deltaTime));
+        let collisionDetected = false;
+        for (const treePos of treePositions) {
+            const radiiSum = NPC_COLLISION_RADIUS + TREE_COLLISION_RADIUS;
+            if (potentialPosition.distanceToSquared(treePos) < radiiSum * radiiSum) { collisionDetected = true; break; }
+        }
+        for (let j = 0; j < npcs.length; j++) {
+            if (i === j) continue;
+            const otherNpc = npcs[j];
+            if (potentialPosition.distanceToSquared(otherNpc.position) < (NPC_COLLISION_RADIUS * 2) ** 2) { collisionDetected = true; break; }
+        }
+        if (isCollidingWithBuilding(potentialPosition, NPC_COLLISION_RADIUS)) { collisionDetected = true; }
+        if (!collisionDetected && isValidNpcTile(potentialPosition.x, potentialPosition.z)) {
+            npc.position.copy(potentialPosition);
+        } else {
+            npc.velocity.set(0,0,0);
         }
         npc.sprite.position.copy(npc.position);
-
         // --- Animation ---
-        if (npc.state !== 'hit') { // Only update animation frame if not in hit state
+        if (npc.state !== 'hit') {
             npc.frameTime += deltaTime;
             const currentFrameDuration = npc.state === 'idle' ? NPC_IDLE_FRAME_DURATION : NPC_WALK_FRAME_DURATION;
             if (npc.frameTime >= currentFrameDuration) {
@@ -3425,54 +3139,42 @@ function updateNpcs(deltaTime) {
                 npc.currentFrame = (npc.currentFrame + 1) % NPC_FRAME_COUNT;
             }
         }
-
         // --- Angle Calculation ---
-        // Skip angle recalculation if the NPC is in the 'hit' state to preserve the pre-hit angle
         if (npc.state !== 'hit') {
             const vecToCam = new THREE.Vector3().subVectors(camera.position, npc.position);
             vecToCam.y = 0;
             vecToCam.normalize();
-            const facingDirection = npc.forward.clone(); // Use NPC's forward vector (now fixed when walking)
+            const facingDirection = npc.forward.clone();
             facingDirection.y = 0;
-            if (facingDirection.lengthSq() === 0) facingDirection.z = -1; // Default if no direction (e.g., initial idle)
+            if (facingDirection.lengthSq() === 0) facingDirection.z = -1;
             facingDirection.normalize();
-
             if (facingDirection.lengthSq() > 0.001 && vecToCam.lengthSq() > 0.001) {
                 const npcAngleRad = Math.atan2(facingDirection.x, facingDirection.z);
                 const camAngleRad = Math.atan2(vecToCam.x, vecToCam.z);
                 let relativeAngleRad = npcAngleRad - camAngleRad;
-                relativeAngleRad = (relativeAngleRad + Math.PI * 3) % (Math.PI * 2) - Math.PI; // Normalize -PI to PI
+                relativeAngleRad = (relativeAngleRad + Math.PI * 3) % (Math.PI * 2) - Math.PI;
                 let angleDeg = THREE.MathUtils.radToDeg(relativeAngleRad);
-                angleDeg = (angleDeg + 360) % 360; // Normalize 0-360
-                angleDeg = (360 - angleDeg) % 360; // <<< Apply mirroring fix (like player character)
-                
-                // Quantize to nearest NPC angle (45 degree increments)
+                angleDeg = (angleDeg + 360) % 360;
+                angleDeg = (360 - angleDeg) % 360;
                 const quantizedIndex = Math.round(angleDeg / angleIncrement) % numAngles;
                 npc.currentAngle = NPC_ANGLES[quantizedIndex];
-            } // else keep previous angle
-        } // End of check for npc.state !== 'hit' for angle calculation
-
+            }
+        }
         // --- Texture Update ---
-        // Determine which state's textures to use
-        const textureStateToUse = (npc.state === 'hit') ? 'idle' : npc.state; // Use idle textures if hit
-        // Use the specific texture set for this NPC type
+        const textureStateToUse = (npc.state === 'hit') ? 'idle' : npc.state;
         const stateTextures = currentNpcTextures[textureStateToUse];
-
         if (stateTextures && stateTextures[npc.currentAngle] && stateTextures[npc.currentAngle][npc.currentFrame]) {
             npc.sprite.material.map = stateTextures[npc.currentAngle][npc.currentFrame];
             npc.sprite.material.needsUpdate = true;
         } else {
-             // Fallback if texture missing (e.g., angle/frame combo invalid for the chosen state)
-             // Use the fallback from the specific NPC type's textures
-             const fallbackTexture = currentNpcTextures.idle?.[0]?.[0];
-             if (fallbackTexture && npc.sprite.material.map !== fallbackTexture) {
-                  npc.sprite.material.map = fallbackTexture;
-                  npc.sprite.material.needsUpdate = true;
-             }
+            const fallbackTexture = currentNpcTextures.idle?.[0]?.[0];
+            if (fallbackTexture && npc.sprite.material.map !== fallbackTexture) {
+                npc.sprite.material.map = fallbackTexture;
+                npc.sprite.material.needsUpdate = true;
+            }
         }
-
-        // --- Billboarding (only if not hit) ---
-        if (npc.state !== 'hit') { // Add check here
+        // --- Billboarding ---
+        if (npc.state !== 'hit') {
             const lookAtTarget = new THREE.Vector3(camera.position.x, npc.sprite.position.y, camera.position.z);
             npc.sprite.lookAt(lookAtTarget);
         }
@@ -3535,6 +3237,8 @@ function animate() {
     if (car7TexturesLoaded && currentDrivingCar !== car7) {
         updateCarVisuals(car7, deltaTime);
     }
+    
+    updateTrafficCars(deltaTime);
     /*
     // Update visuals for car8 if not driven
     if (car8TexturesLoaded && currentDrivingCar !== car8) {
@@ -3582,25 +3286,33 @@ function animate() {
 init(); 
 
 // --- Collision Helper Functions ---
-function isCollidingWithSkyscraper(position, radius) {
-    const halfBase = SKYSCRAPER_BASE_SIZE / 2;
-    for (const buildingPos of skyscraperPositions) {
-        // Calculate building bounds based on its centered position
-        const minX = buildingPos.x - halfBase;
-        const maxX = buildingPos.x + halfBase;
-        const minZ = buildingPos.z - halfBase;
-        const maxZ = buildingPos.z + halfBase;
-
-        // Check Circle vs AABB collision (Simplified XZ check)
+function isCollidingWithBuilding(position, radius) {
+    try {
+        for (const b of placedBuildings) {
+            if (typeof b.x !== 'number' || typeof b.z !== 'number') continue;
+            let heightMultiplier = 8;
+            if (b.wallTextureKey && b.wallTextureKey.startsWith('skyscraper')) {
+                heightMultiplier = 30;
+            }
+            const halfW = (b.width || 1) * 8 / 2;
+            const halfD = (b.depth || 1) * 8 / 2;
+            const minX = b.x - halfW;
+            const maxX = b.x + halfW;
+            const minZ = b.z - halfD;
+            const maxZ = b.z + halfD;
+            // Circle vs AABB collision (XZ plane)
         const closestX = Math.max(minX, Math.min(position.x, maxX));
         const closestZ = Math.max(minZ, Math.min(position.z, maxZ));
         const distanceSq = (position.x - closestX) ** 2 + (position.z - closestZ) ** 2;
-        
         if (distanceSq < radius * radius) {
-            return buildingPos; // Return the position of the collided building
+                return true;
+            }
         }
+        return false;
+    } catch (err) {
+        console.error('Error in isCollidingWithBuilding:', err);
+        return false;
     }
-    return null; // No collision
 }
 
 // --- Fullscreen Toggle Function ---
@@ -3956,6 +3668,8 @@ function updateBullethitEffects(deltaTime) {
         e.group.lookAt(camPos);
         if (e.lifetime <= 0) {
             scene.remove(e.group);
+            if (e.mesh.geometry) e.mesh.geometry.dispose();
+            if (e.mesh.material) e.mesh.material.dispose();
             activeBullethitEffects.splice(i, 1);
         }
     }
@@ -3982,7 +3696,7 @@ function updateProjectiles(deltaTime) {
             }
         }
         // 3. Cars
-        for (const carObj of allCars) {
+        for (const carObj of allCars.concat(trafficCars)) {
             if (carObj.sprite && p.mesh.position.distanceToSquared(carObj.position) < 1.2 * 1.2) {
                 hit = true;
                 break;
@@ -4008,7 +3722,7 @@ function updateProjectiles(deltaTime) {
             }
         }
         // 5. Buildings (skyscrapers) - use isCollidingWithSkyscraper
-        if (isCollidingWithSkyscraper(p.mesh.position, 0.16)) {
+        if (isCollidingWithBuilding(p.mesh.position, 0.16)) {
             hit = true;
         }
         // 6. Island boundary (walls/fence)
@@ -4025,6 +3739,8 @@ function updateProjectiles(deltaTime) {
         if (hit || p.lifetime <= 0) {
             spawnBullethitEffect(p.mesh.position);
             scene.remove(p.mesh);
+            if (p.mesh.geometry) p.mesh.geometry.dispose();
+            if (p.mesh.material) p.mesh.material.dispose();
             projectiles.splice(i, 1);
         }
     }
@@ -4084,6 +3800,8 @@ function updatePoofEffects(deltaTime) {
         e.group.lookAt(camPos);
         if (e.lifetime <= 0) {
             scene.remove(e.group);
+            if (e.mesh.geometry) e.mesh.geometry.dispose();
+            if (e.mesh.material) e.mesh.material.dispose();
             activePoofEffects.splice(i, 1);
         }
     }
@@ -4111,3 +3829,504 @@ function updatePoofEffects(deltaTime) {
                 break;
             }
         }
+
+// --- Create Buildings from Editor Data ---
+function createBuildingsFromEditor() {
+    if (!placedBuildings || placedBuildings.length === 0) {
+        console.warn("No buildings to create from editor data.");
+        return;
+    }
+    const textureLoader = new THREE.TextureLoader();
+    for (const b of placedBuildings) {
+        try {
+            // Defensive: check for required properties
+            if (typeof b.x !== 'number' || typeof b.z !== 'number') {
+                console.error('Invalid building data (missing x/z):', b);
+                continue;
+            }
+            // Determine texture path
+            let texturePath;
+            switch (b.wallTextureKey) {
+                case 'skyscraper1': texturePath = '/textures/skyscraper1.webp'; break;
+                case 'skyscraper2': texturePath = '/textures/skyscraper2.webp'; break;
+                case 'skyscraper3': texturePath = '/textures/skyscraper3.webp'; break;
+                case 'pizza1': texturePath = '/textures/pizza1.webp'; break;
+                case 'pizza2': texturePath = '/textures/pizza2.webp'; break;
+                case 'restaurant1': texturePath = '/textures/restaurant1.webp'; break;
+                case 'restaurant2': texturePath = '/textures/restaurant2.webp'; break;
+                case 'restaurant3': texturePath = '/textures/restaurant3.webp'; break;
+                case 'store': texturePath = '/textures/store.webp'; break;
+                case 'building': texturePath = '/textures/building.webp'; break;
+                default: texturePath = '/textures/building.webp'; break;
+            }
+            const tex = textureLoader.load(texturePath);
+            let heightMultiplier = 8;
+            if (b.wallTextureKey && b.wallTextureKey.startsWith('skyscraper')) {
+                heightMultiplier = 30;
+            }
+            const geometry = new THREE.BoxGeometry(
+                (b.width || 1) * 8,
+                (b.height || 1) * heightMultiplier,
+                (b.depth || 1) * 8
+            );
+            // Explicitly set material properties for better lighting interaction
+            const material = new THREE.MeshStandardMaterial({ 
+                map: tex,
+                roughness: 0.7, // Reduce roughness for less matte appearance
+                metalness: 0.0 // Keep non-metallic
+            });
+            // Position so base sits on ground (no b.y)
+            const meshY = ((b.height || 1) * heightMultiplier) / 2;
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(b.x, meshY, b.z);
+            scene.add(mesh);
+        } catch (err) {
+            console.error('Error creating building from editor data:', b, err);
+        }
+    }
+    console.log(`Created ${placedBuildings.length} buildings from editor.`);
+}
+
+function createEditorFloor(scene, floorTiles, textureLoader) {
+    // Remove any old ground meshes (if present)
+    if (scene.__editorFloorTiles) {
+        for (const mesh of scene.__editorFloorTiles) {
+            scene.remove(mesh);
+            mesh.material.map.dispose();
+            mesh.material.dispose();
+            mesh.geometry.dispose();
+        }
+    }
+    scene.__editorFloorTiles = [];
+    if (!floorTiles || !Array.isArray(floorTiles)) return;
+    const MAP_HEIGHT = floorTiles.length;
+    const MAP_WIDTH = floorTiles[0]?.length || 0;
+    const TILE_SIZE = 6; // Match editor's world scale
+    // Map tile type to texture path
+    const textureMap = {
+        'default': '/textures/ground.webp',
+        'brick': '/textures/brick.webp',
+        'grass': '/textures/grass.webp',
+        'asphalt': '/textures/asphalt.webp',
+        'sidewalk': '/textures/sidewalk.webp',
+    };
+    const textureCache = {}; // Add a cache for textures
+    for (let row = 0; row < MAP_HEIGHT; row++) {
+        for (let col = 0; col < MAP_WIDTH; col++) {
+            const type = floorTiles[row][col];
+            const texPath = textureMap[type] || textureMap['default'];
+            let tex;
+            if (textureCache[texPath]) {
+                tex = textureCache[texPath];
+            } else {
+                tex = textureLoader.load(texPath);
+                tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+                textureCache[texPath] = tex;
+            }
+            const geometry = new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE);
+            const material = new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.rotation.x = -Math.PI / 2;
+            mesh.position.x = (col - MAP_WIDTH / 2) * TILE_SIZE + TILE_SIZE / 2;
+            mesh.position.z = (row - MAP_HEIGHT / 2) * TILE_SIZE + TILE_SIZE / 2;
+            mesh.position.y = 0.01;
+            scene.add(mesh);
+            scene.__editorFloorTiles.push(mesh);
+        }
+    }
+}
+
+// --- Car Tile Helper Function ---
+function isValidCarTile(x, z) {
+    // Returns true if the tile at (x, z) is 'asphalt' (road)
+    const { row, col } = worldToTile(x, z);
+    if (
+        row < 0 || row >= floorTiles.length ||
+        col < 0 || col >= floorTiles[0].length
+    ) return false;
+    return floorTiles[row][col] === 'asphalt';
+}
+
+// --- Traffic Car System ---
+const TRAFFIC_CAR_COUNT = 7;
+const TRAFFIC_CAR_KEEP_RADIUS = 90; // Despawn if further than this from player
+const TRAFFIC_CAR_SPAWN_RADIUS_MIN = 20; // Reduced for debug
+const TRAFFIC_CAR_SPAWN_RADIUS_MAX = 50; // Reduced for debug
+const TRAFFIC_CAR_SPEED = MAX_CAR_SPEED * 0.1; // 10% of max speed
+let trafficCars = [];
+
+// Helper to get a random valid road spawn for a car
+function getRandomValidCarSpawnNearPlayer(radiusMin, radiusMax) {
+    const playerPos = getPlayerPos();
+    for (let i = 0; i < 50; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = radiusMin + Math.random() * (radiusMax - radiusMin);
+        const x = playerPos.x + Math.cos(angle) * dist;
+        const z = playerPos.z + Math.sin(angle) * dist;
+        if (!isValidCarTile(x, z)) continue;
+        // Check for overlap with other cars, trees, npcs
+        let overlap = false;
+        for (const carObj of allCars.concat(trafficCars)) {
+            if (carObj.sprite && carObj.position.distanceToSquared(new THREE.Vector3(x, carObj.position.y, z)) < 3.0) { overlap = true; break; } // Relaxed
+        }
+        for (const tree of treePositions) {
+            if (tree.distanceToSquared(new THREE.Vector3(x, tree.y, z)) < 3.0) { overlap = true; break; } // Relaxed
+        }
+        if (!overlap) {
+            return { x, z };
+        }
+    }
+    return null;
+}
+
+// Traffic car prefab (uses car3-7 textures for variety)
+const TRAFFIC_CAR_PREFABS = [car3, car4, car5, car6, car7];
+
+function spawnTrafficCar() {
+    // Pick a prefab for textures
+    const prefab = TRAFFIC_CAR_PREFABS[Math.floor(Math.random() * TRAFFIC_CAR_PREFABS.length)];
+    const spawn = getRandomValidCarSpawnNearPlayer(TRAFFIC_CAR_SPAWN_RADIUS_MIN, TRAFFIC_CAR_SPAWN_RADIUS_MAX);
+    if (!spawn) {
+        console.warn('Traffic car spawn failed: no valid road tile found near player at', getPlayerPos());
+        return;
+    }
+    // Pick a random angle (aligned to 90 deg for now)
+    const angle = Math.floor(Math.random() * 4) * (Math.PI / 2);
+    const forward = new THREE.Vector3(Math.sin(angle), 0, Math.cos(angle));
+    // Clone textures
+    const textures = prefab.textures;
+    // Create mesh
+    const material = new THREE.MeshBasicMaterial({
+        map: textures[0]?.clone() || null,
+        transparent: true,
+        alphaTest: 0.5,
+        side: THREE.DoubleSide
+    });
+    const geometry = new THREE.PlaneGeometry(CAR_SCALE, CAR_SCALE * 0.6);
+    const sprite = new THREE.Mesh(geometry, material);
+    sprite.position.set(spawn.x, prefab.baseY, spawn.z);
+    scene.add(sprite);
+    // Unique id
+    const id = 'traffic_' + Math.random().toString(36).slice(2);
+    // State
+    trafficCars.push({
+        id,
+        position: new THREE.Vector3(spawn.x, prefab.baseY, spawn.z),
+        velocity: new THREE.Vector3(),
+        forward: forward.clone(),
+        angle,
+        currentAngleSprite: 0,
+        sprite,
+        textures,
+        baseY: prefab.baseY,
+        aiState: 'driving', // 'driving', 'waiting', 'player'
+        resumeTimer: 0
+    });
+    console.log('Spawned traffic car at', spawn.x, spawn.z);
+}
+
+function despawnTrafficCar(car) {
+    scene.remove(car.sprite);
+    if (car.sprite.geometry) car.sprite.geometry.dispose();
+    if (car.sprite.material) car.sprite.material.dispose();
+    const idx = trafficCars.indexOf(car);
+    if (idx !== -1) trafficCars.splice(idx, 1);
+}
+
+// --- Traffic Car Update/Spawn/Despawn ---
+function updateTrafficCars(deltaTime) {
+    const playerPos = getPlayerPos();
+    // Despawn far cars
+    for (let i = trafficCars.length - 1; i >= 0; i--) {
+        const car = trafficCars[i];
+        if (car.position.distanceTo(playerPos) > TRAFFIC_CAR_KEEP_RADIUS) {
+            despawnTrafficCar(car);
+        }
+    }
+    // Spawn new cars if needed
+    while (trafficCars.length < TRAFFIC_CAR_COUNT) {
+        spawnTrafficCar();
+    }
+    // --- AI Driving Logic ---
+    for (const car of trafficCars) {
+        // --- Handle player interaction state ---
+        if (car.aiState === 'player') {
+            // If being driven, skip AI
+            continue;
+        }
+        if (car.aiState === 'waiting') {
+            car.resumeTimer -= deltaTime;
+            if (car.resumeTimer <= 0) {
+                car.aiState = 'driving';
+            }
+            continue;
+        }
+        // --- AI driving logic (restored) ---
+        // Move forward
+        car.velocity.copy(car.forward).multiplyScalar(TRAFFIC_CAR_SPEED);
+        let nextPos = car.position.clone().add(car.velocity.clone().multiplyScalar(deltaTime));
+        // --- Collision & Road Check ---
+        let collision = false;
+        // Fence
+        const fenceBounds = {
+            minX: -ISLAND_WIDTH / 2 + FENCE_COLLISION_MARGIN,
+            maxX: ISLAND_WIDTH / 2 - FENCE_COLLISION_MARGIN,
+            minZ: -ISLAND_LENGTH / 2 + FENCE_COLLISION_MARGIN,
+            maxZ: ISLAND_LENGTH / 2 - FENCE_COLLISION_MARGIN
+        };
+        if (nextPos.x < fenceBounds.minX || nextPos.x > fenceBounds.maxX ||
+            nextPos.z < fenceBounds.minZ || nextPos.z > fenceBounds.maxZ) {
+            collision = true;
+        }
+        // Trees
+        if (!collision) {
+            for (const treePos of treePositions) {
+                if (nextPos.distanceToSquared(treePos) < (CAR_COLLISION_RADIUS + TREE_COLLISION_RADIUS) ** 2) {
+                    collision = true; break;
+                }
+            }
+        }
+        // Buildings
+        if (!collision && isCollidingWithBuilding(nextPos, CAR_COLLISION_RADIUS)) {
+            collision = true;
+        }
+        // Other cars (traffic and player cars)
+        if (!collision) {
+            for (const other of allCars.concat(trafficCars)) {
+                if (other === car || !other.sprite) continue;
+                if (nextPos.distanceToSquared(other.position) < (CAR_COLLISION_RADIUS * 2) ** 2) {
+                    collision = true; break;
+                }
+            }
+        }
+        // --- Road Check ---
+        const onRoad = isValidCarTile(nextPos.x, nextPos.z);
+        // --- Intersection/Turn Logic ---
+        if (!onRoad || collision) {
+            // Try left, right, or reverse (avoid U-turn if possible)
+            const angles = [Math.PI/2, -Math.PI/2, Math.PI];
+            let found = false;
+            for (let a of angles) {
+                const newAngle = car.angle + a;
+                const dir = new THREE.Vector3(Math.sin(newAngle), 0, Math.cos(newAngle));
+                const testPos = car.position.clone().add(dir.clone().multiplyScalar(CAR_SCALE * 1.2));
+                if (isValidCarTile(testPos.x, testPos.z)) {
+                    car.forward.copy(dir);
+                    car.angle = newAngle;
+                    found = true;
+                    break;
+                }
+            }
+            // If no turn found, try random direction
+            if (!found) {
+                for (let tries = 0; tries < 4; tries++) {
+                    const randAngle = Math.random() * Math.PI * 2;
+                    const dir = new THREE.Vector3(Math.sin(randAngle), 0, Math.cos(randAngle));
+                    const testPos = car.position.clone().add(dir.clone().multiplyScalar(CAR_SCALE * 1.2));
+                    if (isValidCarTile(testPos.x, testPos.z)) {
+                        car.forward.copy(dir);
+                        car.angle = randAngle;
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            // If still not found, reverse
+            if (!found) {
+                car.forward.negate();
+                car.angle += Math.PI;
+            }
+            // Don't move this frame
+            continue;
+        }
+        // --- Move ---
+        car.position.add(car.velocity.clone().multiplyScalar(deltaTime));
+        // --- Billboard and Sprite Angle ---
+        car.sprite.position.copy(car.position);
+        // Billboard
+        const lookAtTarget = new THREE.Vector3(camera.position.x, car.sprite.position.y, camera.position.z);
+        car.sprite.lookAt(lookAtTarget);
+        // Sprite angle for texture
+        const vecToCam = new THREE.Vector3().subVectors(camera.position, car.position);
+        vecToCam.y = 0;
+        if (vecToCam.lengthSq() > 0.001) {
+            vecToCam.normalize();
+            const carWorldAngleRad = car.angle;
+            const camAngleRad = Math.atan2(vecToCam.x, vecToCam.z);
+            let relativeAngleRad = camAngleRad - carWorldAngleRad;
+            relativeAngleRad = (relativeAngleRad + Math.PI * 4) % (Math.PI * 2);
+            let angleDeg = THREE.MathUtils.radToDeg(relativeAngleRad);
+            const angleIncrement = CAR_ANGLE_INCREMENT;
+            const numAngles = NUM_CAR_ANGLES;
+            const quantizedIndex = Math.round(angleDeg / angleIncrement) % numAngles;
+            car.currentAngleSprite = CAR_ANGLES[quantizedIndex];
+            const targetTexture = car.textures[car.currentAngleSprite];
+            if (targetTexture && car.sprite.material.map !== targetTexture) {
+                car.sprite.material.map = targetTexture;
+                car.sprite.material.needsUpdate = true;
+            }
+        }
+    }
+}
+
+// --- Player interaction with traffic cars ---
+// Add to onKeyDown (E key handler):
+// ... existing code ...
+
+// ... existing code ...
+// --- Show interaction prompt for traffic cars ---
+// Add to your render/animate loop (after updateTrafficCars):
+if (playerControlMode === 'character') {
+    let showPrompt = false;
+    for (const car of allCars.concat(trafficCars)) {
+        if (!car.sprite) continue;
+        if (character.position.distanceTo(car.position) < INTERACTION_DISTANCE) {
+            showPrompt = true;
+            break;
+        }
+    }
+    let prompt = document.getElementById('car-interact-prompt');
+    if (!prompt) {
+        prompt = document.createElement('div');
+        prompt.id = 'car-interact-prompt';
+        prompt.style.position = 'fixed';
+        prompt.style.left = '50%';
+        prompt.style.bottom = '18%';
+        prompt.style.transform = 'translate(-50%, 0)';
+        prompt.style.background = 'rgba(0,0,0,0.7)';
+        prompt.style.color = 'white';
+        prompt.style.padding = '10px 24px';
+        prompt.style.borderRadius = '8px';
+        prompt.style.fontSize = '1.5em';
+        prompt.style.zIndex = '2000';
+        prompt.style.pointerEvents = 'none';
+        prompt.innerText = 'Press E to enter car';
+        document.body.appendChild(prompt);
+    }
+    prompt.style.display = showPrompt ? 'block' : 'none';
+} else {
+    let prompt = document.getElementById('car-interact-prompt');
+    if (prompt) prompt.style.display = 'none';
+}
+// ... existing code ...
+
+// --- Car-Car Collision Helper ---
+function handleCarCarCollisions(carList) {
+    // Add a collision cooldown property to each car if not present
+    for (const car of carList) {
+        if (car.collisionCooldown === undefined) car.collisionCooldown = 0;
+    }
+    for (let i = 0; i < carList.length; i++) {
+        const carA = carList[i];
+        if (!carA.sprite) continue;
+        if (carA.collisionCooldown > 0) continue;
+        for (let j = i + 1; j < carList.length; j++) {
+            const carB = carList[j];
+            if (!carB.sprite) continue;
+            if (carB.collisionCooldown > 0) continue;
+            const distSq = carA.position.distanceToSquared(carB.position);
+            const radiiSum = CAR_COLLISION_RADIUS * 2;
+            if (distSq < radiiSum * radiiSum) {
+                // Calculate rebound direction for both cars
+                const dirA = carA.position.clone().sub(carB.position).normalize();
+                const dirB = carB.position.clone().sub(carA.position).normalize();
+                carA.velocity.copy(dirA.multiplyScalar(CAR_REBOUND_SPEED));
+                carB.velocity.copy(dirB.multiplyScalar(CAR_REBOUND_SPEED));
+                carA.collisionCooldown = 0.2; // 0.2s cooldown
+                carB.collisionCooldown = 0.2;
+                // Spawn bang effect at midpoint
+                const mid = carA.position.clone().add(carB.position).multiplyScalar(0.5);
+                createPowEffect(mid, 'car');
+            }
+        }
+    }
+}
+
+// --- WebGL Context Loss/Restore Handling ---
+if (renderer && renderer.domElement) {
+    renderer.domElement.addEventListener('webglcontextlost', function(event) {
+        event.preventDefault();
+        console.warn('WebGL context lost');
+        // Pause animation loop
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+        // Show reload prompt
+        let reloadPrompt = document.getElementById('webgl-reload-prompt');
+        if (!reloadPrompt) {
+            reloadPrompt = document.createElement('div');
+            reloadPrompt.id = 'webgl-reload-prompt';
+            reloadPrompt.style.position = 'fixed';
+            reloadPrompt.style.left = '50%';
+            reloadPrompt.style.top = '50%';
+            reloadPrompt.style.transform = 'translate(-50%, -50%)';
+            reloadPrompt.style.background = 'rgba(0,0,0,0.85)';
+            reloadPrompt.style.color = 'white';
+            reloadPrompt.style.padding = '24px 36px';
+            reloadPrompt.style.borderRadius = '12px';
+            reloadPrompt.style.fontSize = '2em';
+            reloadPrompt.style.zIndex = '3000';
+            reloadPrompt.style.textAlign = 'center';
+            reloadPrompt.innerHTML = 'Graphics context lost.<br><button id="webgl-reload-btn" style="margin-top:16px;font-size:1em;padding:8px 24px;">Reload Game</button>';
+            document.body.appendChild(reloadPrompt);
+            document.getElementById('webgl-reload-btn').onclick = () => window.location.reload();
+        } else {
+            reloadPrompt.style.display = 'block';
+        }
+    }, false);
+    renderer.domElement.addEventListener('webglcontextrestored', function() {
+        console.warn('WebGL context restored');
+        // Hide reload prompt if present
+        let reloadPrompt = document.getElementById('webgl-reload-prompt');
+        if (reloadPrompt) reloadPrompt.style.display = 'none';
+        // Recommend a full reload for safety
+        window.location.reload();
+    }, false);
+}
+// --- End WebGL Context Loss/Restore Handling ---
+
+// --- Patch: Ensure all disposable objects are disposed when removed ---
+// Patch for POW, poof, bullethit, and traffic car removal:
+// (Replace in updatePowEffects, updatePoofEffects, updateBullethitEffects, despawnTrafficCar, removeNpc)
+//
+// Example for POW effects:
+// ...
+// Remove effect
+scene.remove(effect.sprite);
+if (effect.sprite.geometry) effect.sprite.geometry.dispose();
+if (effect.sprite.material) effect.sprite.material.dispose();
+// ...
+//
+// Example for poof effects:
+// ...
+scene.remove(e.group);
+if (e.mesh.geometry) e.mesh.geometry.dispose();
+if (e.mesh.material) e.mesh.material.dispose();
+// ...
+//
+// Example for bullethit effects:
+// ...
+scene.remove(e.group);
+if (e.mesh.geometry) e.mesh.geometry.dispose();
+if (e.mesh.material) e.mesh.material.dispose();
+// ...
+//
+// Example for traffic car removal:
+// ...
+scene.remove(car.sprite);
+if (car.sprite.geometry) car.sprite.geometry.dispose();
+if (car.sprite.material) car.sprite.material.dispose();
+// ...
+//
+// Example for NPC removal:
+// ...
+scene.remove(npc.sprite);
+if (npc.sprite.geometry) npc.sprite.geometry.dispose();
+if (npc.sprite.material) npc.sprite.material.dispose();
+// ...
+//
+// These are already present in some places, but ensure they are present everywhere an object is removed.
+// ... existing code ...
+
+

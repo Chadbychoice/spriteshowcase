@@ -21,7 +21,7 @@ if (!loadingScreen) {
     loadingScreen.style.top = '0';
     loadingScreen.style.width = '100vw';
     loadingScreen.style.height = '100vh';
-    loadingScreen.style.background = 'url("/loading.png") center center no-repeat';
+    loadingScreen.style.background = 'url("https://i.ibb.co/8nKcxmQf/b9c6ca38-6560-4f9c-a93d-83d3551edd8d.png") center center no-repeat';
     loadingScreen.style.backgroundSize = 'cover';
     loadingScreen.style.zIndex = '5000';
     loadingScreen.style.display = 'flex';
@@ -159,7 +159,7 @@ const FENCE_COLLISION_MARGIN = 0.5; // How far inside the island edge the collis
 const FENCE_TEXTURE_SECTION_WIDTH = 2.0; // Assumed width in world units of one fence texture repeat
 // --- End Fence Constants ---
 // --- End Island Dimensions ---
-const NUM_NPCS = 5; // How many NPCs to create
+const NUM_NPCS = 0; // How many NPCs to create
 const NPC_WALK_SPEED = 1.0; // Units per second
 const NPC_FRAME_COUNT = 10; // 0000-0009
 const NPC_IDLE_FRAME_DURATION = 0.25;
@@ -2959,15 +2959,15 @@ function findNearestValidTile(x, z, maxRadius = 20) {
 }
 
 // --- New NPC System ---
-const NPC_DESIRED_COUNT = 20;
-const NPC_KEEP_RADIUS = 50;
+const NPC_DESIRED_COUNT = 10;
+const NPC_KEEP_RADIUS = 30;
 function getPlayerPos() {
     return playerControlMode === 'character' ? character.position : (currentDrivingCar ? currentDrivingCar.position : character.position);
 }
 function getRandomValidNpcSpawnNearPlayer(radiusMin, radiusMax) {
     // Try up to 50 times to find a valid spot
     const playerPos = getPlayerPos();
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 30; i++) {
         const angle = Math.random() * Math.PI * 2;
         const dist = radiusMin + Math.random() * (radiusMax - radiusMin);
         const x = playerPos.x + Math.cos(angle) * dist;
@@ -4006,7 +4006,7 @@ function isValidCarTile(x, z) {
 }
 
 // --- Traffic Car System ---
-const TRAFFIC_CAR_COUNT = 7;
+const TRAFFIC_CAR_COUNT = 2;
 const TRAFFIC_CAR_KEEP_RADIUS = 90; // Despawn if further than this from player
 const TRAFFIC_CAR_SPAWN_RADIUS_MIN = 20; // Reduced for debug
 const TRAFFIC_CAR_SPAWN_RADIUS_MAX = 50; // Reduced for debug
@@ -4097,7 +4097,7 @@ function updateTrafficCars(deltaTime) {
     // Despawn far cars
     for (let i = trafficCars.length - 1; i >= 0; i--) {
         const car = trafficCars[i];
-        if (car.position.distanceTo(playerPos) > TRAFFIC_CAR_KEEP_RADIUS) {
+        if (car.position.distanceTo(playerPos) > TRAFFIC_CAR_KEEP_RADIUS * 0.5) { // Adjusted to despawn closer
             despawnTrafficCar(car);
         }
     }
@@ -4389,7 +4389,7 @@ if (npc.sprite.material) npc.sprite.material.dispose();
 
 
 // --- Loading Progress Tracking ---
-let totalAssetsToLoad = 0;
+let totalAssetsToLoad = 1; // Start at 1 to avoid division by zero
 let loadedAssets = 0;
 function setLoadingProgress(progress, text) {
     loadingBar.style.width = Math.round(progress * 100) + '%';
@@ -4397,7 +4397,10 @@ function setLoadingProgress(progress, text) {
 }
 function incrementLoadedAssets(text) {
     loadedAssets++;
-    setLoadingProgress(loadedAssets / totalAssetsToLoad, text);
+    // Prevent division by zero and clamp progress
+    let progress = loadedAssets / Math.max(totalAssetsToLoad, 1);
+    if (progress > 1) progress = 1;
+    setLoadingProgress(progress, text);
 }
 // --- End Loading Progress Tracking ---
 
@@ -4426,5 +4429,35 @@ function hideLoadingScreen() {
 // In your main texture loading chain, after all .then()s:
 // .then(() => { ... if (!animationFrameId) animate(); hideLoadingScreen(); })
 // ... existing code ...
+
+// Texture cache to store loaded textures
+const textureCache = {};
+
+// Function to load texture with caching
+function loadTextureWithCache(url) {
+    if (textureCache[url]) {
+        return textureCache[url];
+    }
+    const texture = textureLoader.load(url);
+    textureCache[url] = texture;
+    return texture;
+}
+
+// Update texture loading calls to use the caching function
+// Example: grassTexture = textureLoader.load('/textures/grass.webp');
+// Updated to:
+grassTexture = loadTextureWithCache('/textures/grass.webp');
+buildingTexture = loadTextureWithCache('/textures/building.webp');
+powTexture = loadTextureWithCache('/sprites/effects/pow.webp');
+bangTexture = loadTextureWithCache('/sprites/effects/bang.webp');
+pewTexture = loadTextureWithCache('/sprites/effects/pew.webp');
+muzzleTexture = loadTextureWithCache('/sprites/effects/muzzle.webp');
+poofTexture = loadTextureWithCache('/sprites/effects/poof.webp');
+bullethitTexture = loadTextureWithCache('/sprites/effects/bullethit.webp');
+
+// Ensure that any dynamically loaded textures are also cached
+// Example: bulletTextures[angle] = textureLoader.load(filePath);
+// Updated to:
+bulletTextures[angle] = loadTextureWithCache(filePath);
 
 

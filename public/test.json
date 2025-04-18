@@ -1,0 +1,2076 @@
+{
+  "placedObjects": [
+    {
+      "id": "_3sjr7gq19",
+      "type": "sprite",
+      "position": {
+        "x": -8.088363742357004,
+        "y": 0.51,
+        "z": -2.6923455315504228
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_5osr7bxdy",
+      "type": "sprite",
+      "position": {
+        "x": 24.762110830224607,
+        "y": 0.51,
+        "z": -2.6300998677881466
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_l0vmo90t1",
+      "type": "sprite",
+      "position": {
+        "x": -1.000745930152883,
+        "y": 0.51,
+        "z": -17.673624424610843
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_63xnxwoqo",
+      "type": "sprite",
+      "position": {
+        "x": 10.056271863830895,
+        "y": 0.51,
+        "z": -7.800007046372826
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_j63mswr27",
+      "type": "sprite",
+      "position": {
+        "x": 27.201863265368985,
+        "y": 0.51,
+        "z": -22.844328986441
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_fd7v1pna5",
+      "type": "sprite",
+      "position": {
+        "x": -6.521937211782992,
+        "y": 0.51,
+        "z": -40.2872210742026
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_yb4t9h6q3",
+      "type": "sprite",
+      "position": {
+        "x": 27.707426348687385,
+        "y": 0.51,
+        "z": -65.35162895648986
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_9sz4qh9p1",
+      "type": "sprite",
+      "position": {
+        "x": -7.618905056151249,
+        "y": 0.51,
+        "z": -64.73735020874452
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_7nyfe49k3",
+      "type": "sprite",
+      "position": {
+        "x": 6.3256902661002545,
+        "y": 0.51,
+        "z": -62.932025428262044
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_do89voar5",
+      "type": "sprite",
+      "position": {
+        "x": 4.565448133807296,
+        "y": 0.51,
+        "z": -47.8933923564778
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_qelia2cxl",
+      "type": "sprite",
+      "position": {
+        "x": -7.684407083690555,
+        "y": 0.51,
+        "z": -57.18573380489071
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_0qcilfae0",
+      "type": "sprite",
+      "position": {
+        "x": 25.11609324176436,
+        "y": 0.51,
+        "z": -37.73579778589137
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_yv8ur85jr",
+      "type": "sprite",
+      "position": {
+        "x": 25.152460843449852,
+        "y": 0.51,
+        "z": -54.86812977288552
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_5r4frh5fk",
+      "type": "sprite",
+      "position": {
+        "x": 15.320569928913564,
+        "y": 0.51,
+        "z": -47.75117779090406
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_4jaypgjb8",
+      "type": "sprite",
+      "position": {
+        "x": 15.475753811759805,
+        "y": 0.51,
+        "z": -58.22592935566848
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_h9lzg91rp",
+      "type": "sprite",
+      "position": {
+        "x": 4.25939191112346,
+        "y": 0.51,
+        "z": -30.65082998276878
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_wo60i7v9s",
+      "type": "sprite",
+      "position": {
+        "x": 15.259684542739139,
+        "y": 0.51,
+        "z": -27.39339796695091
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_j7m4j6vhe",
+      "type": "sprite",
+      "position": {
+        "x": -11.351489281460587,
+        "y": 0.51,
+        "z": -26.884471751984467
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_rkjals2t1",
+      "type": "building",
+      "position": {
+        "x": -38.28915115740031,
+        "y": 0.51,
+        "z": 64.05810836411239
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.85,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper1"
+    },
+    {
+      "id": "_yhkii3h1j",
+      "type": "building",
+      "position": {
+        "x": -28.97703626879242,
+        "y": 0.51,
+        "z": 65.65624361156945
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.65,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper2"
+    },
+    {
+      "id": "_gjsho7zm6",
+      "type": "building",
+      "position": {
+        "x": -21.0081467994708,
+        "y": 0.51,
+        "z": 65.27162749307196
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper2"
+    },
+    {
+      "id": "_r65t5p5fi",
+      "type": "building",
+      "position": {
+        "x": -8.398382644712711,
+        "y": 0.51,
+        "z": 63.528543432374164
+      },
+      "dimensions": {
+        "width": 2,
+        "height": 0.6,
+        "depth": 0.8
+      },
+      "wallTextureKey": "restaurant1"
+    },
+    {
+      "id": "_bvzcnbaxk",
+      "type": "building",
+      "position": {
+        "x": -31.881431602440593,
+        "y": 0.51,
+        "z": 94.77235831958545
+      },
+      "dimensions": {
+        "width": 2,
+        "height": 0.85,
+        "depth": 0.8
+      },
+      "wallTextureKey": "skyscraper2"
+    },
+    {
+      "id": "_r0m627ryb",
+      "type": "building",
+      "position": {
+        "x": -3.046546514334615,
+        "y": 0.51,
+        "z": 90.66187373135632
+      },
+      "dimensions": {
+        "width": 0.8,
+        "height": 1.05,
+        "depth": 1.6
+      },
+      "wallTextureKey": "skyscraper1"
+    },
+    {
+      "id": "_lq1y3d5fv",
+      "type": "building",
+      "position": {
+        "x": -3.4562935932200958,
+        "y": 0.51,
+        "z": 76.14807532517122
+      },
+      "dimensions": {
+        "width": 0.8,
+        "height": 0.6,
+        "depth": 2
+      },
+      "wallTextureKey": "store"
+    },
+    {
+      "id": "_f44bud2fs",
+      "type": "sprite",
+      "position": {
+        "x": -33.331427196140254,
+        "y": 0.51,
+        "z": 74.77134434865204
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_m35i1eakh",
+      "type": "sprite",
+      "position": {
+        "x": -19.231336193847063,
+        "y": 0.51,
+        "z": 82.83254391361233
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_cjr4c5tee",
+      "type": "sprite",
+      "position": {
+        "x": -28.345282034315588,
+        "y": 0.51,
+        "z": 81.37514852201367
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_z7uhkjh1p",
+      "type": "sprite",
+      "position": {
+        "x": -23.194185337510575,
+        "y": 0.51,
+        "z": 76.23159445284908
+      },
+      "spriteKey": "tree"
+    },
+    {
+      "id": "_j94l73gxg",
+      "type": "building",
+      "position": {
+        "x": 14.477693267044657,
+        "y": 0.51,
+        "z": 34.5650972415813
+      },
+      "dimensions": {
+        "width": 0.8,
+        "height": 1.15,
+        "depth": 2
+      },
+      "wallTextureKey": "skyscraper1"
+    },
+    {
+      "id": "_un4zalu7n",
+      "type": "building",
+      "position": {
+        "x": -9.094168118791075,
+        "y": 0.51,
+        "z": 33.46299788183997
+      },
+      "dimensions": {
+        "width": 0.8,
+        "height": 0.7,
+        "depth": 2
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "id": "_y9fgnipzw",
+      "type": "building",
+      "position": {
+        "x": -26.884902402047146,
+        "y": 0.51,
+        "z": 7.121383819808784
+      },
+      "dimensions": {
+        "width": 0.8,
+        "height": 0.6,
+        "depth": 1.6
+      },
+      "wallTextureKey": "pizza2"
+    },
+    {
+      "id": "_1b18mqt7x",
+      "type": "building",
+      "position": {
+        "x": -28.931722349091956,
+        "y": 0.51,
+        "z": -8.434707865719751
+      },
+      "dimensions": {
+        "width": 1.2,
+        "height": 0.6,
+        "depth": 1.2
+      },
+      "wallTextureKey": "restaurant1"
+    },
+    {
+      "id": "_jqnq9ea9c",
+      "type": "building",
+      "position": {
+        "x": -27.330847512353557,
+        "y": 0.51,
+        "z": -23.353190835110027
+      },
+      "dimensions": {
+        "width": 0.8,
+        "height": 0.6,
+        "depth": 1.6
+      },
+      "wallTextureKey": "restaurant2"
+    },
+    {
+      "id": "_rknngr5ak",
+      "type": "building",
+      "position": {
+        "x": -26.445813227131794,
+        "y": 0.51,
+        "z": -39.676084648042476
+      },
+      "dimensions": {
+        "width": 0.8,
+        "height": 0.6,
+        "depth": 1.6
+      },
+      "wallTextureKey": "restaurant3"
+    },
+    {
+      "id": "_17iqvq1s5",
+      "type": "building",
+      "position": {
+        "x": -26.27877458343326,
+        "y": 0.51,
+        "z": -57.4788138154466
+      },
+      "dimensions": {
+        "width": 0.8,
+        "height": 0.6,
+        "depth": 1.6
+      },
+      "wallTextureKey": "restaurant3"
+    },
+    {
+      "id": "_amtcuf3t4",
+      "type": "building",
+      "position": {
+        "x": -38.25382609754075,
+        "y": 0.51,
+        "z": -129.93620472785503
+      },
+      "dimensions": {
+        "width": 5,
+        "height": 0.6,
+        "depth": 5
+      },
+      "wallTextureKey": "store"
+    },
+    {
+      "id": "_ni733fnm7",
+      "type": "building",
+      "position": {
+        "x": 36.92943349901283,
+        "y": 0.51,
+        "z": 37.489907984083146
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.75,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper2"
+    },
+    {
+      "id": "_bbz9jemw8",
+      "type": "building",
+      "position": {
+        "x": 38.522648857644555,
+        "y": 0.51,
+        "z": 51.60997554320571
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.95,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "id": "_sjr5yc4v5",
+      "type": "building",
+      "position": {
+        "x": 27.354568426272536,
+        "y": 0.51,
+        "z": 53.92987425422663
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.6,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "id": "_aked9bylv",
+      "type": "building",
+      "position": {
+        "x": 28.16473022253774,
+        "y": 0.51,
+        "z": 36.37969698259732
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.65,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "id": "_kwdgadfr4",
+      "type": "building",
+      "position": {
+        "x": 19.196145204270298,
+        "y": 0.51,
+        "z": 35.09796981031718
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1.2,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "id": "_h3l2eadbh",
+      "type": "building",
+      "position": {
+        "x": -51.928292556404244,
+        "y": 0.51,
+        "z": 13.998962911152049
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.85,
+        "depth": 3
+      },
+      "wallTextureKey": "skyscraper1"
+    },
+    {
+      "id": "_ufgli9brs",
+      "type": "building",
+      "position": {
+        "x": -51.79296676244492,
+        "y": 0.51,
+        "z": -10.138900448970574
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1.2,
+        "depth": 3
+      },
+      "wallTextureKey": "skyscraper2"
+    },
+    {
+      "id": "_11mudrzad",
+      "type": "building",
+      "position": {
+        "x": -52.33265256838344,
+        "y": 0.51,
+        "z": -35.89507354338063
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.65,
+        "depth": 3
+      },
+      "wallTextureKey": "skyscraper2"
+    },
+    {
+      "id": "_zzeiuqs4e",
+      "type": "building",
+      "position": {
+        "x": -52.807754767437345,
+        "y": 0.51,
+        "z": -61.71045023417797
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.8,
+        "depth": 3
+      },
+      "wallTextureKey": "skyscraper2"
+    },
+    {
+      "id": "_9rwyp9gyk",
+      "type": "building",
+      "position": {
+        "x": 29.556189955346476,
+        "y": 0.51,
+        "z": 78.30198801960152
+      },
+      "dimensions": {
+        "width": 3,
+        "height": 0.7,
+        "depth": 3
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "id": "_zrixowv47",
+      "type": "building",
+      "position": {
+        "x": 30.452413143086574,
+        "y": 0.51,
+        "z": 62.09817384952041
+      },
+      "dimensions": {
+        "width": 3,
+        "height": 0.6,
+        "depth": 1
+      },
+      "wallTextureKey": "restaurant3"
+    },
+    {
+      "id": "_34j6knodh",
+      "type": "building",
+      "position": {
+        "x": -45.578421915724846,
+        "y": 0.51,
+        "z": 122.25680446500814
+      },
+      "dimensions": {
+        "width": 2,
+        "height": 1.1,
+        "depth": 2
+      },
+      "wallTextureKey": "skyscraper1"
+    },
+    {
+      "id": "_pujl9prn6",
+      "type": "building",
+      "position": {
+        "x": 34.10257671953992,
+        "y": 0.51,
+        "z": 120.57242042569627
+      },
+      "dimensions": {
+        "width": 2,
+        "height": 1.05,
+        "depth": 2
+      },
+      "wallTextureKey": "skyscraper1"
+    },
+    {
+      "id": "_g52xorpds",
+      "type": "building",
+      "position": {
+        "x": 8.599938598833361,
+        "y": 0.51,
+        "z": 121.69455808127483
+      },
+      "dimensions": {
+        "width": 2,
+        "height": 1.05,
+        "depth": 2
+      },
+      "wallTextureKey": "skyscraper2"
+    },
+    {
+      "id": "_0ojdkiunj",
+      "type": "building",
+      "position": {
+        "x": -22.051292264602324,
+        "y": 0.51,
+        "z": 121.37448568858034
+      },
+      "dimensions": {
+        "width": 2,
+        "height": 0.9,
+        "depth": 2
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "id": "_2bnjretj0",
+      "type": "building",
+      "position": {
+        "x": 12.395454504327944,
+        "y": 0.51,
+        "z": -36.22398990983825
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.6,
+        "depth": 1
+      },
+      "wallTextureKey": "pizza2"
+    },
+    {
+      "id": "_krc4ntgw0",
+      "type": "building",
+      "position": {
+        "x": -17.076151432482334,
+        "y": 0.51,
+        "z": 34.68381749825738
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.9,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper1"
+    },
+    {
+      "id": "_3cn7mmiy9",
+      "type": "building",
+      "position": {
+        "x": -47.73780571392487,
+        "y": 0.51,
+        "z": 37.03109052699327
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.65,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper1"
+    },
+    {
+      "id": "_x8qbtcsfu",
+      "type": "building",
+      "position": {
+        "x": -44.055009125008645,
+        "y": 0.51,
+        "z": 27.18934030376151
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "id": "_l8myer6gi",
+      "type": "building",
+      "position": {
+        "x": -26.133325841026895,
+        "y": 0.51,
+        "z": 34.776811488905224
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "id": "_5u4a9bzri",
+      "type": "building",
+      "position": {
+        "x": -36.39503858585896,
+        "y": 0.51,
+        "z": 34.90247896623558
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.95,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper2"
+    },
+    {
+      "id": "_yigoodr9o",
+      "type": "building",
+      "position": {
+        "x": -17.5263348731798,
+        "y": 0.51,
+        "z": 27.613091962754083
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.85,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper2"
+    },
+    {
+      "id": "_09nevjxcd",
+      "type": "building",
+      "position": {
+        "x": -30.760333216962014,
+        "y": 0.51,
+        "z": 27.030896307404035
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1.1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper2"
+    },
+    {
+      "id": "_uwe0sydgu",
+      "type": "building",
+      "position": {
+        "x": -8.42197147083045,
+        "y": 0.51,
+        "z": -81.64512806899396
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1.15,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper2"
+    },
+    {
+      "id": "_kcog5vyej",
+      "type": "building",
+      "position": {
+        "x": 11.187950746164276,
+        "y": 0.51,
+        "z": -106.572729933425
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1.15,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper2"
+    },
+    {
+      "id": "_j3ovbr3zg",
+      "type": "building",
+      "position": {
+        "x": 38.44241269448354,
+        "y": 0.51,
+        "z": -81.64510022542542
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.7,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper2"
+    },
+    {
+      "id": "_v4ppyd528",
+      "type": "building",
+      "position": {
+        "x": 14.84403752081164,
+        "y": 0.51,
+        "z": -86.63063686044211
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1.05,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper2"
+    },
+    {
+      "id": "_trax1g6qk",
+      "type": "building",
+      "position": {
+        "x": 1.8815474461431947,
+        "y": 0.51,
+        "z": -85.63354029012156
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper1"
+    },
+    {
+      "id": "_oexfqo5l7",
+      "type": "building",
+      "position": {
+        "x": 28.803640389778966,
+        "y": 0.51,
+        "z": -82.97457855914496
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.9,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper1"
+    },
+    {
+      "id": "_q7ps3iu2z",
+      "type": "building",
+      "position": {
+        "x": 21.159096200894062,
+        "y": 0.51,
+        "z": -108.23456362219528
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.75,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper1"
+    },
+    {
+      "id": "_xwa9a1nxq",
+      "type": "building",
+      "position": {
+        "x": 35.907102158468646,
+        "y": 0.51,
+        "z": -107.90439922023552
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 0.8,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper1"
+    },
+    {
+      "id": "_6eeuc7ngd",
+      "type": "building",
+      "position": {
+        "x": -1.099682846357311,
+        "y": 0.51,
+        "z": -109.95772083632684
+      },
+      "dimensions": {
+        "width": 1,
+        "height": 1.15,
+        "depth": 1
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "id": "_fxq80f23k",
+      "type": "building",
+      "position": {
+        "x": 24.36010330400987,
+        "y": 0.51,
+        "z": -129.903680230363
+      },
+      "dimensions": {
+        "width": 4.5,
+        "height": 0.85,
+        "depth": 0.5
+      },
+      "wallTextureKey": "skyscraper3"
+    },
+    {
+      "id": "_hp4okroio",
+      "type": "building",
+      "position": {
+        "x": -29.773301050766406,
+        "y": 0.51,
+        "z": -71.29720630199363
+      },
+      "dimensions": {
+        "width": 1.2,
+        "height": 0.6,
+        "depth": 1.2
+      },
+      "wallTextureKey": "pizza2"
+    },
+    {
+      "id": "_ndyvyts3b",
+      "type": "building",
+      "position": {
+        "x": -52.02768210579337,
+        "y": 0.51,
+        "z": -79.92329331169984
+      },
+      "dimensions": {
+        "width": 1.2,
+        "height": 0.6,
+        "depth": 1.2
+      },
+      "wallTextureKey": "restaurant3"
+    }
+  ],
+  "floorTiles": [
+    [
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk"
+    ],
+    [
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "default",
+      "default",
+      "default",
+      "default",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "sidewalk",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "sidewalk",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "sidewalk",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "sidewalk",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "sidewalk",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "sidewalk",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "sidewalk",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "sidewalk",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "sidewalk",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "sidewalk",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "sidewalk",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "sidewalk",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "sidewalk",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "grass",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "default",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "default",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "default",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "default",
+      "default",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "default",
+      "brick",
+      "default",
+      "default",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "sidewalk",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "sidewalk",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "default",
+      "asphalt",
+      "asphalt",
+      "sidewalk",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "default",
+      "asphalt",
+      "asphalt",
+      "sidewalk",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "grass",
+      "grass",
+      "grass",
+      "brick",
+      "brick",
+      "default",
+      "asphalt",
+      "asphalt",
+      "sidewalk",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "grass",
+      "grass",
+      "grass",
+      "brick",
+      "brick",
+      "default",
+      "asphalt",
+      "asphalt",
+      "sidewalk",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "default",
+      "asphalt",
+      "asphalt",
+      "sidewalk",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "default",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "default",
+      "default",
+      "asphalt",
+      "asphalt",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "brick",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "asphalt",
+      "sidewalk"
+    ],
+    [
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk",
+      "sidewalk"
+    ]
+  ]
+}

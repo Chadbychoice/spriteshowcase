@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 // import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 // Add imports for post-processing
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -10,6 +10,8 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { ColorCorrectionShader } from 'three/examples/jsm/shaders/ColorCorrectionShader.js';
 // Import Water
 import { Water } from 'three/examples/jsm/objects/Water.js';
+// Add import at the top with other imports
+import { audioManager } from './audioManager.js';
 
 // --- Loading Screen Implementation ---
 let loadingScreen = document.getElementById('loading-screen');
@@ -934,8 +936,14 @@ function init() {
             animate();
         }
 +       hideLoadingScreen();
-    }).catch(err => {
-        console.error("Error loading textures:", err);
+    }).then(() => {
+        console.log("NPC textures loaded!");
+        npcTexturesLoaded = true;
+        createNpcs(); // Create NPCs after their textures are loaded
+        // Start background sound after everything is loaded
+        audioManager.startBackgroundSound();
+    }).catch(error => {
+        console.error("Error loading textures:", error);
     });
 
     // Event Listeners
@@ -2010,6 +2018,9 @@ function onKeyDown(event) {
                 // Optional: Reset car state
                 currentDrivingCar.velocity.set(0, 0, 0);
                 
+                // Start car music when entering
+                audioManager.startCarMusic();
+                
                 // Snap camera behind the entered car
                 cameraHorizontalAngle = currentDrivingCar.angle + Math.PI; 
                 targetCameraVerticalAngle = CAMERA_VERTICAL_ANGLE_CAR_RAD;
@@ -2018,6 +2029,13 @@ function onKeyDown(event) {
                 console.log(`Entered ${currentDrivingCar.id}`); // Log which car was entered
             }
         } else if (playerControlMode === 'car' && currentDrivingCar) { // Check if driving a car
+            // Stop car sounds when exiting
+            if (currentDrivingCar.engineSound) {
+                currentDrivingCar.engineSound.pause();
+                currentDrivingCar.engineSound = null;
+            }
+            audioManager.stopCarMusic();
+
             playerControlMode = 'character';
             targetCameraVerticalAngle = CAMERA_VERTICAL_ANGLE_CHARACTER_RAD;
             
@@ -2463,6 +2481,7 @@ function updateCharacter(deltaTime) {
                         npc.velocity.copy(character.forward).multiplyScalar(HIT_IMPULSE_HORIZONTAL);
                         npc.velocity.y = HIT_IMPULSE_VERTICAL;
                         npc.timeUntilNextDecision = 10; // Prevent immediate decisions after being hit
+                        audioManager.playPunchSound(); // Add punch sound
                         createPowEffect(npc.position);
                         character.punchedThisAction = true; // Mark punch as landed
                         break; // Hit one NPC per punch
@@ -2537,6 +2556,16 @@ function updateCharacter(deltaTime) {
             character.forward.copy(camDir);
             character.lastMovementForward.copy(camDir);
         }
+    }
+
+    // In updateCharacter, after movement is applied and before collision check
+    if (wantsToMoveHorizontally && character.isOnGround && !character.isPunching) {
+        // Get the tile type at the character's position
+        const tileCoords = worldToTile(character.position.x, character.position.z);
+        const isOnGrass = floorTiles[tileCoords.row] && 
+                         (floorTiles[tileCoords.row][tileCoords.col] === 'default' || 
+                          floorTiles[tileCoords.row][tileCoords.col] === 'grass');
+        audioManager.playRandomWalkSound(isOnGrass, wantsToRun);
     }
 }
 
@@ -2712,6 +2741,14 @@ function updateCar(drivingCar, deltaTime) { // Accept the car object being drive
     // drivingCar.sprite.position.copy(drivingCar.position); // Position update still needed here?
     // Let updateCarVisuals handle this, it's called right after
     updateCarVisuals(drivingCar, deltaTime); // Update visuals of the driven car
+
+    // In updateCar, where car starts moving
+    if (accelerationInput !== 0 || Math.abs(forwardSpeed) > 0.1) {
+        if (!drivingCar.engineSound) {
+            drivingCar.engineSound = audioManager.startCarEngine(true);
+        }
+        audioManager.updateCarPitch(drivingCar.engineSound, Math.abs(forwardSpeed) / MAX_CAR_SPEED);
+    }
 }
 
 // Renamed updateCar2 to updateCarVisuals and made it generic
@@ -3109,6 +3146,7 @@ function updateNpcs(deltaTime) {
             npc.velocity.copy(carImpulse).multiplyScalar(CAR_HIT_IMPULSE_HORIZONTAL);
             npc.velocity.y = CAR_HIT_IMPULSE_VERTICAL;
             npc.timeUntilNextDecision = 10;
+            audioManager.playPunchSound();
             createPowEffect(npc.position, 'car'); // Use BANG effect
             continue;
         }
@@ -3639,6 +3677,7 @@ loadBulletTextures();
 
 // --- Update spawnProjectile to use bullet sprite based on character/camera angle ---
 function spawnProjectile(from, direction) {
+    audioManager.playShootSound();
     // Calculate angle between character's forward and camera's forward (XZ plane)
     const charForward = character.forward.clone();
     charForward.y = 0; charForward.normalize();
@@ -3757,6 +3796,7 @@ function updateProjectiles(deltaTime) {
         for (const carObj of allCars.concat(trafficCars)) {
             if (carObj.sprite && p.mesh.position.distanceToSquared(carObj.position) < 1.2 * 1.2) {
                 hit = true;
+                audioManager.playPunchSound(); // Play hit sound for car hits
                 break;
             }
         }
@@ -3771,6 +3811,8 @@ function updateProjectiles(deltaTime) {
                 npc.velocity.y = 10.0 + Math.random() * 3.0; // strong upward
                 npc.state = 'hit';
                 npc.timeUntilNextDecision = 10;
+                // Play hit sound
+                audioManager.playPunchSound();
                 // --- Spawn 3 poof effects at hit position ---
                 for (let k = 0; k < 3; k++) {
                     spawnPoofEffect(p.mesh.position, away);
@@ -4084,6 +4126,10 @@ function spawnTrafficCar() {
 }
 
 function despawnTrafficCar(car) {
+    if (car.engineSound) {
+        car.engineSound.pause();
+        car.engineSound = null;
+    }
     scene.remove(car.sprite);
     if (car.sprite.geometry) car.sprite.geometry.dispose();
     if (car.sprite.material) car.sprite.material.dispose();
@@ -4098,7 +4144,34 @@ function updateTrafficCars(deltaTime) {
     for (let i = trafficCars.length - 1; i >= 0; i--) {
         const car = trafficCars[i];
         if (car.position.distanceTo(playerPos) > TRAFFIC_CAR_KEEP_RADIUS * 0.5) { // Adjusted to despawn closer
+            if (car.engineSound) {
+                car.engineSound.pause();
+                car.engineSound = null;
+            }
             despawnTrafficCar(car);
+        }
+    }
+
+    // Update each traffic car
+    for (const car of trafficCars) {
+        // Handle engine sound based on distance
+        const distToPlayer = car.position.distanceTo(playerPos);
+        const maxHearingDistance = 30; // Maximum distance to hear car engines
+        
+        if (distToPlayer < maxHearingDistance) {
+            // Start engine sound if not already playing
+            if (!car.engineSound) {
+                car.engineSound = audioManager.startCarEngine(false, 0.5);
+            }
+            // Update volume based on distance
+            if (car.engineSound) {
+                const volume = Math.max(0, 1 - (distToPlayer / maxHearingDistance));
+                car.engineSound.volume = volume * 0.2; // Keep other cars quieter than player's car
+            }
+        } else if (car.engineSound) {
+            // Stop engine sound if too far
+            car.engineSound.pause();
+            car.engineSound = null;
         }
     }
     // Spawn new cars if needed
@@ -4292,6 +4365,8 @@ function handleCarCarCollisions(carList) {
                 carB.velocity.copy(dirB.multiplyScalar(CAR_REBOUND_SPEED));
                 carA.collisionCooldown = 0.2; // 0.2s cooldown
                 carB.collisionCooldown = 0.2;
+                // Play collision sound
+                audioManager.playCarHitSound();
                 // Spawn bang effect at midpoint
                 const mid = carA.position.clone().add(carB.position).multiplyScalar(0.5);
                 createPowEffect(mid, 'car');
